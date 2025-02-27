@@ -62,13 +62,13 @@ pipeline {
                 echo 'Running error prediction...'
 
                 script {
-                    // Get the next prediction count
+                    // Get the next prediction count based on the number of lines in the CSV
                     def prediction_count = 1
                     if (fileExists("${env.CSV_FILE}")) {
-                        // Read the contents of the CSV file
+                        // Read the CSV file to calculate the prediction count
                         def csvContent = readFile(file: "${env.CSV_FILE}")
                         
-                        // Parse CSV content manually (assuming CSV is simple with one column, adjust as needed)
+                        // Split CSV content into lines
                         def lines = csvContent.split("\n")
                         prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
                     }
@@ -82,7 +82,7 @@ pipeline {
                         ${env.VENV_PATH}\\Scripts\\activate && python --version
                     """
 
-                    // Run the error prediction model and save to dynamically named file
+                    // Run the error prediction model and save the prediction to the dynamically named file
                     echo "Running prediction model..."
                     bat """
                         ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
@@ -99,11 +99,20 @@ pipeline {
             steps {
                 echo 'Build Status: SUCCESS'
                 script {
-                    echo "Build log contents:"
-                    // Output any relevant logs if needed
+                    // Output build logs or any other relevant logs if needed
+                    echo "Displaying build log contents..."
                     bat "type ${env.WORKSPACE_DIR}\\build_log\\build_logs\\build_${env.BUILD_ID}.log"
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo "Build was successful!"
+        }
+        failure {
+            echo "Build failed. Please check the logs for errors."
         }
     }
 }
