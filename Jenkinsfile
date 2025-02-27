@@ -205,9 +205,10 @@ pipeline {
 
                     // Display the contents of the prediction file
                     echo "Displaying prediction log contents..."
-            bat """
-                type "${env.PREDICTION_FOLDER}\\${predictionFile}"
-            """                }
+                    bat """
+                        type ${env.PREDICTION_FOLDER}\\${predictionFile}
+                    """
+                }
             }
         }
 
