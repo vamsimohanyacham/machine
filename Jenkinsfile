@@ -89,13 +89,14 @@ stage('Run ML Error Prediction') {
             """
 
             // Display the contents of the prediction file after creation
-            echo "Displaying contents of the prediction file..."
+            echo "Displaying contents of the prediction file: ${env.PREDICTION_FOLDER}\\${predictionFile}"
             bat """
                 type ${env.PREDICTION_FOLDER}\\${predictionFile}
             """
         }
     }
 }
+
 
 
         stage('Post Build Actions') {
