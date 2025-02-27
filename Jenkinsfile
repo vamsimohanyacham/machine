@@ -90,7 +90,7 @@ pipeline {
 
                     // Display the contents of the prediction file
                     echo "Displaying prediction log contents..."
-                    bat "type ${env.PREDICTION_FOLDER}\\${predictionFile}"
+                   bat 'type "d:/machinelearning/build_log/build_logs\\${predictionFile}"
                 }
             }
         }
