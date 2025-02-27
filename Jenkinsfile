@@ -172,7 +172,7 @@ pipeline {
             }
         }
 
-       stage('Run ML Error Prediction') {
+      stage('Run ML Error Prediction') {
     steps {
         echo 'Running error prediction...'
 
@@ -185,8 +185,20 @@ pipeline {
             if (fileExists("${env.PREDICTION_FOLDER}")) {
                 predictionFiles = bat(script: "dir ${env.PREDICTION_FOLDER} /b", returnStdout: true).trim().split("\n")
                 // Extract numbers from prediction file names like "prediction53.json"
-                def predictionNumbers = predictionFiles.collect { it.replaceAll(~/[^0-9]/, '') }
-                prediction_count = predictionNumbers.collect { it.toInteger() }.max() + 1
+                def predictionNumbers = predictionFiles.collect { 
+                    // Match only numbers from filenames like prediction53.json
+                    def match = it =~ /prediction(\d+)\.json/
+                    if (match) {
+                        return match[0][1]  // Extract the number part from filename
+                    } else {
+                        return null
+                    }
+                }.findAll { it != null }  // Remove null values
+
+                // If there are valid prediction numbers, calculate the next one
+                if (predictionNumbers.size() > 0) {
+                    prediction_count = predictionNumbers.collect { it.toInteger() }.max() + 1
+                }
             }
 
             // Define prediction file name dynamically
