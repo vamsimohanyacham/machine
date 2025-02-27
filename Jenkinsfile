@@ -101,7 +101,7 @@ pipeline {
                 script {
                     // Output build logs or any other relevant logs if needed
                     echo "Displaying build log contents..."
-                    bat "type ${env.WORKSPACE_DIR}\\build_log\\build_logs\\build_${env.BUILD_ID}.log"
+                    bat "type ${env.PREDICTION_FOLDER}\\${predictionFile}"
                 }
             }
         }
