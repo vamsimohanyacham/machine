@@ -90,7 +90,7 @@ pipeline {
 
                     // Display the contents of the prediction file
                     echo "Displaying prediction log contents..."
-                   bat 'type "d:/machinelearning/build_log/build_logs\\${predictionFile}"
+                    bat 'type "d:/machinelearning/build_log/build_logs\\prediction38.json"'
                 }
             }
         }
