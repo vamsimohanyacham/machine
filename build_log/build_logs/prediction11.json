@@ -1,0 +1,7 @@
+{
+    "status": "fail",
+    "message": "Potential issues detected in the build.",
+    "details": [
+        "Warning: The build has failed previously."
+    ]
+}

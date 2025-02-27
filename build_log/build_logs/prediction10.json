@@ -1,0 +1,9 @@
+{
+    "status": "fail",
+    "message": "Potential issues detected in the build.",
+    "details": [
+        "Warning: Build duration is unusually long.",
+        "Warning: Significant dependency changes detected.",
+        "Warning: The build has failed previously."
+    ]
+}

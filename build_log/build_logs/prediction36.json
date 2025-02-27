@@ -1,0 +1,7 @@
+{
+    "status": "success",
+    "message": "No potential issues detected in the build.",
+    "details": [
+        "Warning: Significant dependency changes detected."
+    ]
+}
