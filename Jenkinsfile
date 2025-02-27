@@ -90,8 +90,9 @@ pipeline {
 
                     // Display the contents of the prediction file
                     echo "Displaying prediction log contents..."
-                type ${predictionFile}
-                }
+            bat """
+                type "${env.PREDICTION_FOLDER}\\${predictionFile}"
+            """                }
             }
         }
 
