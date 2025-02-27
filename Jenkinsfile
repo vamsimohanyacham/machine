@@ -57,46 +57,46 @@ pipeline {
             }
         }
 
-        stage('Run ML Error Prediction') {
-            steps {
-                echo 'Running error prediction...'
+stage('Run ML Error Prediction') {
+    steps {
+        echo 'Running error prediction...'
 
-                script {
-                    // Get the next prediction count based on the number of lines in the CSV
-                    def prediction_count = 1
-                    if (fileExists("${env.CSV_FILE}")) {
-                        // Read the CSV file to calculate the prediction count
-                        def csvContent = readFile(file: "${env.CSV_FILE}")
-                        
-                        // Split CSV content into lines
-                        def lines = csvContent.split("\n")
-                        prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
-                    }
-
-                    // Define prediction file name dynamically
-                    def predictionFile = "prediction${prediction_count}.json"
-
-                    // Ensure Python is available
-                    echo "Checking Python version..."
-                    bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && python --version
-                    """
-
-                    // Run the error prediction model and save the prediction to the dynamically named file
-                    echo "Running prediction model..."
-                    bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
-                    """
-
-                    // Use correct path with double backslashes and ensure quotes around the file path
-                    def filePath = "${env.PREDICTION_FOLDER}\\${predictionFile}"
-                    
-                    // Display the contents of the prediction file using correct path format
-                    echo "Displaying prediction log contents..."
-                    bat "type \"${filePath}\""
-                }
+        script {
+            // Get the next prediction count based on the existing files in the prediction folder
+            def prediction_count = 1
+            if (fileExists("${env.CSV_FILE}")) {
+                // Read the CSV file to calculate the prediction count
+                def csvContent = readFile(file: "${env.CSV_FILE}")
+                
+                // Split CSV content into lines
+                def lines = csvContent.split("\n")
+                prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
             }
+
+            // Define prediction file name dynamically
+            def predictionFile = "prediction${prediction_count}.json"
+
+            // Ensure Python is available
+            echo "Checking Python version..."
+            bat """
+                ${env.VENV_PATH}\\Scripts\\activate && python --version
+            """
+
+            // Run the error prediction model and save the prediction to the dynamically named file
+            echo "Running prediction model..."
+            bat """
+                ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
+            """
+
+            // Display the contents of the prediction file after creation
+            echo "Displaying contents of the prediction file..."
+            bat """
+                type ${env.PREDICTION_FOLDER}\\${predictionFile}
+            """
         }
+    }
+}
+
 
         stage('Post Build Actions') {
             steps {
