@@ -29,10 +29,10 @@ pipeline {
                         """
                     }
                     
-                    // Step 2: Install necessary dependencies directly
+                    // Step 2: Install necessary dependencies manually
                     echo 'Installing Python dependencies...'
                     bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && pip install -r ${env.SCRIPT_PATH}\\requirements.txt
+                        ${env.VENV_PATH}\\Scripts\\activate && pip install pandas scikit-learn
                     """
                 }
             }
