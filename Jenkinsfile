@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "D:/machinelearning"  // Path to your project directory (Adjust accordingly)
+        WORKSPACE_DIR = "d:/machinelearning"  // Path to your project directory (Adjust accordingly)
         VENV_PATH = "${WORKSPACE_DIR}\\venv"  // Path to your virtual environment
         MODEL_PATH = "${WORKSPACE_DIR}\\trained_models\\build_error_prediction_model.pkl"  // Path to model
         SCRIPT_PATH = "${WORKSPACE_DIR}\\scripts"  // Path to scripts folder
