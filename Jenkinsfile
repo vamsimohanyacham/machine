@@ -93,7 +93,7 @@ pipeline {
 
                     // Display the contents of the prediction file using correct path format
                     echo "Displaying prediction log contents..."
-                    bat "type \"${filePath}\""
+                    bat "type "${\filePath}\""
                 }
             }
         }
