@@ -90,7 +90,7 @@ pipeline {
 
                     // Use correct path with double backslashes and ensure quotes around the file path
                     def filePath = "${env.PREDICTION_FOLDER}\\${predictionFile}"
-
+                    
                     // Display the contents of the prediction file using correct path format
                     echo "Displaying prediction log contents..."
                     bat "type \"${filePath}\""
