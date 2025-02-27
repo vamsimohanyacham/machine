@@ -6,7 +6,8 @@ pipeline {
         VENV_PATH = "${WORKSPACE_DIR}\\venv"  // Path to your virtual environment
         MODEL_PATH = "${WORKSPACE_DIR}\\trained_models\\build_error_prediction_model.pkl"  // Path to model
         SCRIPT_PATH = "${WORKSPACE_DIR}\\scripts"  // Path to scripts folder
-        LOG_FILE_PATH = "${WORKSPACE_DIR}\\build_log\\build_logs\\prediction_407.json"  // Path for prediction log
+        PREDICTION_FOLDER = "${WORKSPACE_DIR}\\build_log\\build_logs"  // Path for prediction log
+        CSV_FILE = "${WORKSPACE_DIR}\\build_logs.csv"  // Path to the CSV file
     }
 
     stages {
@@ -61,21 +62,31 @@ pipeline {
                 echo 'Running error prediction...'
 
                 script {
+                    // Get the next prediction count
+                    def prediction_count = 1
+                    if (fileExists("${env.CSV_FILE}")) {
+                        def df = readCSV file: "${env.CSV_FILE}"
+                        prediction_count = df.size() + 1
+                    }
+
+                    // Define prediction file name dynamically
+                    def predictionFile = "prediction${prediction_count}.json"
+
                     // Ensure Python is available
                     echo "Checking Python version..."
                     bat """
                         ${env.VENV_PATH}\\Scripts\\activate && python --version
                     """
 
-                    // Run the error prediction model
+                    // Run the error prediction model and save to dynamically named file
                     echo "Running prediction model..."
                     bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.LOG_FILE_PATH}
+                        ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
                     """
 
                     // Display the contents of the prediction file
-                    echo 'Displaying prediction log contents...'
-                    bat "type ${env.LOG_FILE_PATH}"
+                    echo "Displaying prediction log contents..."
+                    bat "type ${env.PREDICTION_FOLDER}\\${predictionFile}"
                 }
             }
         }
