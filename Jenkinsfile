@@ -65,8 +65,12 @@ pipeline {
                     // Get the next prediction count
                     def prediction_count = 1
                     if (fileExists("${env.CSV_FILE}")) {
-                        def df = readCSV file: "${env.CSV_FILE}"
-                        prediction_count = df.size() + 1
+                        // Read the contents of the CSV file
+                        def csvContent = readFile(file: "${env.CSV_FILE}")
+                        
+                        // Parse CSV content manually (assuming CSV is simple with one column, adjust as needed)
+                        def lines = csvContent.split("\n")
+                        prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
                     }
 
                     // Define prediction file name dynamically
