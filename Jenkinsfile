@@ -88,12 +88,12 @@ pipeline {
                         ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
                     """
 
-                    // Use forward slashes for Windows compatibility or double backslashes
-                    def filePath = "d:/machinelearning/build_log/build_logs/${predictionFile}"
+                    // Use correct path with double backslashes and ensure quotes around the file path
+                    def filePath = "${env.PREDICTION_FOLDER}\\${predictionFile}"
 
                     // Display the contents of the prediction file using correct path format
                     echo "Displaying prediction log contents..."
-                    bat "type ${filePath}"
+                    bat "type \"${filePath}\""
                 }
             }
         }
@@ -104,12 +104,13 @@ pipeline {
                 script {
                     echo "Displaying build log contents..."
                     // Output build logs or any other relevant logs if needed
-                    bat "type ${env.WORKSPACE_DIR}\\build_log\\build_logs\\build_${env.BUILD_ID}.log"
+                    bat "type \"${env.WORKSPACE_DIR}\\build_log\\build_logs\\build_${env.BUILD_ID}.log\""
                 }
             }
         }
     }
 }
+
 
 
 
