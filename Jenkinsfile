@@ -172,45 +172,52 @@ pipeline {
             }
         }
 
-        stage('Run ML Error Prediction') {
-            steps {
-                echo 'Running error prediction...'
+       stage('Run ML Error Prediction') {
+    steps {
+        echo 'Running error prediction...'
 
-                script {
-                    // Get the next prediction count based on the number of lines in the CSV
-                    def prediction_count = 1
-                    if (fileExists("${env.CSV_FILE}")) {
-                        // Read the CSV file to calculate the prediction count
-                        def csvContent = readFile(file: "${env.CSV_FILE}")
-                        
-                        // Split CSV content into lines
-                        def lines = csvContent.split("\n")
-                        prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
-                    }
+        script {
+            // Get the next prediction count based on the highest number in existing prediction files
+            def prediction_count = 1
+            def predictionFiles = []
 
-                    // Define prediction file name dynamically
-                    def predictionFile = "prediction${prediction_count}.json"
+            // List all existing prediction files in the prediction folder
+            if (fileExists("${env.PREDICTION_FOLDER}")) {
+                predictionFiles = bat(script: "dir ${env.PREDICTION_FOLDER} /b", returnStdout: true).trim().split("\n")
+                // Extract numbers from prediction file names like "prediction53.json"
+                def predictionNumbers = predictionFiles.collect { it.replaceAll(~/[^0-9]/, '') }
+                prediction_count = predictionNumbers.collect { it.toInteger() }.max() + 1
+            }
 
-                    // Ensure Python is available
-                    echo "Checking Python version..."
-                    bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && python --version
-                    """
+            // Define prediction file name dynamically
+            def predictionFile = "prediction${prediction_count}.json"
 
-                    // Run the error prediction model and save the prediction to the dynamically named file
-                    echo "Running prediction model..."
-                    bat """
-                        ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
-                    """
+            // Ensure Python is available
+            echo "Checking Python version..."
+            bat """
+                ${env.VENV_PATH}\\Scripts\\activate && python --version
+            """
 
-                    // Display the contents of the prediction file
-                    echo "Displaying prediction log contents..."
-                    bat """
-                        type ${env.PREDICTION_FOLDER}\\${predictionFile}
-                    """
-                }
+            // Run the error prediction model and save the prediction to the dynamically named file
+            echo "Running prediction model..."
+            bat """
+                ${env.VENV_PATH}\\Scripts\\activate && python ${env.SCRIPT_PATH}\\ml_error_prediction.py --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 --prediction_file ${env.PREDICTION_FOLDER}\\${predictionFile}
+            """
+
+            // Check if the prediction file was created
+            echo "Checking if prediction file ${predictionFile} exists..."
+            if (fileExists("${env.PREDICTION_FOLDER}\\${predictionFile}")) {
+                // Display the contents of the prediction file
+                echo "Displaying prediction log contents..."
+                bat """
+                    type ${env.PREDICTION_FOLDER}\\${predictionFile}
+                """
+            } else {
+                echo "Prediction file ${predictionFile} was not created."
             }
         }
+    }
+}
 
         stage('Post Build Actions') {
             steps {
