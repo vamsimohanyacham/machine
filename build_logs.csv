@@ -92,3 +92,4 @@ build_duration,dependency_changes,failed_previous_builds,build_status
 400,0.0,0.0,fail
 400,0.0,0.0,fail
 400,0.0,0.0,fail
+400,0.0,0.0,fail
