@@ -118,7 +118,7 @@ pipeline {
         PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
         GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
         GIT_BRANCH = "main"  // Target branch
-        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  // **Update this to match your system**
+        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  // Update this path
     }
 
     stages {
@@ -134,9 +134,9 @@ pipeline {
 
                         echo 'Upgrading pip and installing dependencies...'
                         bat """
-                            call ${env.VENV_PATH}/Scripts/activate && ^
-                            python -m pip install --upgrade pip && ^
-                            pip install pandas scikit-learn
+                            call ${env.VENV_PATH}/Scripts/activate
+                            call python -m pip install --upgrade pip
+                            call pip install pandas scikit-learn
                         """
                     }
                 }
@@ -150,8 +150,8 @@ pipeline {
                     dir(env.WORKSPACE_DIR) {
                         echo "Running prediction model..."
                         bat """
-                            call ${env.VENV_PATH}/Scripts/activate && ^
-                            python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+                            call ${env.VENV_PATH}/Scripts/activate
+                            call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
                         """
 
                         echo "Displaying Python script output..."
@@ -194,11 +194,11 @@ pipeline {
                         def gitEmail = "vamsimohanyacham@gmail.com"
 
                         bat """
-                            git config --global user.name "${gitUser}" && ^
-                            git config --global user.email "${gitEmail}" && ^
-                            git add "${env.PREDICTION_FILE_PATH}" && ^
-                            git add "${env.CSV_FILE}" && ^
-                            git commit -m "Updated prediction logs and build logs from Jenkins" && ^
+                            git config --global user.name "${gitUser}"
+                            git config --global user.email "${gitEmail}"
+                            git add "${env.PREDICTION_FILE_PATH}"
+                            git add "${env.CSV_FILE}"
+                            git commit -m "Updated prediction logs and build logs from Jenkins"
                             git push origin ${env.GIT_BRANCH}
                         """
                     }
