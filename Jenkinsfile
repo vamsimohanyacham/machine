@@ -110,24 +110,22 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "D:/machinelearning"  // Root directory
-        VENV_PATH = "${WORKSPACE_DIR}/venv"  // Virtual environment
-        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  // Scripts folder
-        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  // Prediction log folder
-        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  // CSV file path
-        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
-        GIT_BRANCH = "main"  // Target branch
-        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  // Update this path
+        WORKSPACE_DIR = "D:/machinelearning"
+        VENV_PATH = "${WORKSPACE_DIR}/venv"
+        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"
+        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"
+        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"
+        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"
+        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
+        GIT_BRANCH = "main"
+        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
     }
 
     stages {
         stage('Set up Python Environment') {
             steps {
-                echo 'Setting up Python virtual environment...'
                 script {
                     dir(env.WORKSPACE_DIR) {
-                        // Delete and recreate virtual environment if it's corrupted
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
                             echo 'Creating virtual environment...'
                             bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
@@ -147,7 +145,6 @@ pipeline {
 
         stage('Run ML Error Prediction') {
             steps {
-                echo 'Running error prediction...'
                 script {
                     dir(env.WORKSPACE_DIR) {
                         echo "Running prediction model..."
@@ -160,31 +157,29 @@ pipeline {
                         bat "type prediction_output.log"
 
                         if (!fileExists("prediction_output.log")) {
-                            echo "❌ ERROR: prediction_output.log not found!"
-                            error("Prediction script did not run correctly.")
+                            error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
 
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
-
                         def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
+
                         if (predictionFileMatch.find()) {
                             predictionFilePath = predictionFileMatch.group(1).trim()
                             echo "✅ Using dynamically detected prediction file: ${predictionFilePath}"
                         } else {
-                            echo "❌ ERROR: Could not determine the prediction file name."
-                            error("Prediction file was not generated correctly. Check 'prediction_output.log' for details.")
+                            error("❌ ERROR: Could not determine the prediction file name. Check 'prediction_output.log'.")
                         }
 
                         if (fileExists(predictionFilePath)) {
                             echo "Displaying contents of the prediction file: ${predictionFilePath}"
                             bat "type \"${predictionFilePath}\""
                         } else {
-                            echo "❌ ERROR: Prediction file not found at ${predictionFilePath}"
-                            error("Prediction file was not generated. Check 'prediction_output.log' for errors.")
+                            error("❌ ERROR: Prediction file not found at ${predictionFilePath}. Check 'prediction_output.log'.")
                         }
 
-                        env.PREDICTION_FILE_PATH = predictionFilePath
+                        // ✅ Store only the plain string in env variable
+                        env.PREDICTION_FILE_PATH = "${predictionFilePath}"
                     }
                 }
             }
@@ -192,7 +187,6 @@ pipeline {
 
         stage('Commit & Push to Git') {
             steps {
-                echo 'Committing and pushing updated logs to Git...'
                 script {
                     dir(env.WORKSPACE_DIR) {
                         def gitUser = "vamsimohanyacham"
@@ -207,15 +201,14 @@ pipeline {
                             echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
                             bat "git add \"${env.PREDICTION_FILE_PATH}\""
                         } else {
-                            echo "❌ ERROR: Prediction file does not exist, skipping commit."
-                            error("Cannot commit: Prediction file missing.")
+                            error("❌ ERROR: Prediction file does not exist. Cannot commit.")
                         }
 
                         if (fileExists(env.CSV_FILE)) {
                             echo "✅ Adding CSV file to Git: ${env.CSV_FILE}"
                             bat "git add \"${env.CSV_FILE}\""
                         } else {
-                            echo "❌ WARNING: CSV file does not exist, skipping commit."
+                            echo "⚠️ WARNING: CSV file not found, skipping commit."
                         }
 
                         bat """
@@ -230,7 +223,6 @@ pipeline {
         }
     }
 }
-
 
 
 
