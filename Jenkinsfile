@@ -211,9 +211,11 @@ pipeline {
                         def gitUser = "vamsimohanyacham"
                         def gitEmail = "vamsimohanyacham@gmail.com"
 
+                        // ✅ Prevent Git from Asking for Credentials
                         bat """
                             git config --global user.name "${gitUser}"
                             git config --global user.email "${gitEmail}"
+                            git config --global credential.helper store
                         """
 
                         // ✅ Ensure files exist before adding to Git
@@ -231,6 +233,10 @@ pipeline {
                             echo "⚠️ WARNING: CSV file not found, skipping commit."
                         }
 
+                        // ✅ Sleep to Avoid Git Lock Issues
+                        echo "⏳ Waiting before pushing to Git..."
+                        sleep(time: 2, unit: 'SECONDS')
+
                         // ✅ Ensure a commit happens only if there are changes
                         bat """
                             git diff --cached --exit-code || (
@@ -244,6 +250,7 @@ pipeline {
         }
     }
 }
+
 
 
 
