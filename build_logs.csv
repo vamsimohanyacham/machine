@@ -79,3 +79,5 @@ build_duration,dependency_changes,failed_previous_builds,build_status
 300,0.0,0.0,success
 300,0.0,0.0,success
 300,0.0,0.0,success
+300,0.0,0.0,success
+400,0.0,0.0,fail

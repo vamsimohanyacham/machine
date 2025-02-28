@@ -212,7 +212,7 @@ def main():
         prediction_count = 1
 
     # Test Case: High-risk build (Should FAIL)
-    build_duration = 300
+    build_duration = 400
     dependency_changes = 0
     failed_previous_builds = 0
 
