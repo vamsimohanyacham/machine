@@ -145,6 +145,8 @@ pipeline {
 
         stage('Run ML Error Prediction') {
             steps {
+                echo 'Running error prediction...'
+
                 script {
                     dir(env.WORKSPACE_DIR) {
                         echo "Running prediction model..."
@@ -156,21 +158,24 @@ pipeline {
                         echo "Displaying Python script output..."
                         bat "type prediction_output.log"
 
+                        // Ensure the log file exists
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
 
+                        // Extract prediction file from logs
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")  // ✅ Convert slashes
+                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")  // ✅ Fix slashes
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
                         }
 
+                        // Ensure the prediction file exists
                         if (fileExists(predictionFilePath)) {
                             echo "Displaying contents of the prediction file: ${predictionFilePath}"
                             bat "type \"${predictionFilePath}\""
@@ -178,7 +183,7 @@ pipeline {
                             error("❌ ERROR: Prediction file not found at ${predictionFilePath}. Check 'prediction_output.log'.")
                         }
 
-                        // ✅ Store only the plain string in env variable
+                        // ✅ Store the detected filename as a plain string in the environment variable
                         env.PREDICTION_FILE_PATH = "${predictionFilePath}"
                     }
                 }
@@ -187,6 +192,8 @@ pipeline {
 
         stage('Commit & Push to Git') {
             steps {
+                echo 'Committing and pushing updated logs to Git...'
+
                 script {
                     dir(env.WORKSPACE_DIR) {
                         def gitUser = "vamsimohanyacham"
@@ -197,6 +204,7 @@ pipeline {
                             git config --global user.email "${gitEmail}"
                         """
 
+                        // ✅ Ensure files exist before adding to Git
                         if (fileExists(env.PREDICTION_FILE_PATH)) {
                             echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
                             bat "git add \"${env.PREDICTION_FILE_PATH}\""
@@ -211,6 +219,7 @@ pipeline {
                             echo "⚠️ WARNING: CSV file not found, skipping commit."
                         }
 
+                        // ✅ Ensure a commit happens only if there are changes
                         bat """
                             git diff --cached --exit-code || (
                                 git commit -m "Updated prediction logs and build logs from Jenkins"
