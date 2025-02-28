@@ -312,7 +312,7 @@ pipeline {
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extracting only the string
+                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extract only the filename as a string
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
@@ -393,10 +393,3 @@ pipeline {
         }
     }
 }
-
-
-
-
-
-
-
