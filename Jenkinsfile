@@ -73,8 +73,8 @@ stage('Run ML Error Prediction') {
                 prediction_count = lines.size() + 1 // Increment prediction count based on the number of lines
             }
 
-            // Define prediction file name dynamically
-            def predictionFile = "prediction${prediction_count}.json"
+            // Define the prediction file name (for now, we will force it to prediction54.json)
+            def predictionFile = "prediction54.json"
 
             // Ensure Python is available
             echo "Checking Python version..."
