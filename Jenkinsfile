@@ -110,15 +110,15 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "D:/machinelearning"  // Use this as the root directory
-        VENV_PATH = "${WORKSPACE_DIR}/venv"  // Virtual environment path
-        MODEL_PATH = "${WORKSPACE_DIR}/trained_models/build_error_prediction_model.pkl"  // Model path
+        WORKSPACE_DIR = "D:/machinelearning"  // Root directory
+        VENV_PATH = "${WORKSPACE_DIR}/venv"  // Virtual environment
         SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  // Scripts folder
         PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  // Prediction log folder
         CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  // CSV file path
-        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // Path to Python script
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Your Git repository
-        GIT_BRANCH = "main"  // Your target branch
+        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
+        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
+        GIT_BRANCH = "main"  // Target branch
+        PYTHON_PATH = "C:/Users/YOUR_USER/AppData/Local/Programs/Python/Python39/python.exe"  // Update this to match your system
     }
 
     stages {
@@ -126,14 +126,18 @@ pipeline {
             steps {
                 echo 'Setting up Python virtual environment and installing dependencies...'
                 script {
-                    dir(env.WORKSPACE_DIR) {  // Ensure execution in D:/machinelearning
+                    dir(env.WORKSPACE_DIR) {
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
                             echo 'Creating virtual environment...'
-                            bat "python -m venv ${env.VENV_PATH}"
+                            bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
                         }
 
-                        echo 'Installing Python dependencies...'
-                        bat "call ${env.VENV_PATH}/Scripts/activate && pip install pandas scikit-learn"
+                        echo 'Upgrading pip and installing dependencies...'
+                        bat """
+                            call ${env.VENV_PATH}/Scripts/activate && ^
+                            python -m pip install --upgrade pip && ^
+                            pip install pandas scikit-learn
+                        """
                     }
                 }
             }
@@ -142,9 +146,8 @@ pipeline {
         stage('Run ML Error Prediction') {
             steps {
                 echo 'Running error prediction...'
-
                 script {
-                    dir(env.WORKSPACE_DIR) {  // Ensure execution in D:/machinelearning
+                    dir(env.WORKSPACE_DIR) {
                         echo "Running prediction model..."
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate && ^
@@ -154,9 +157,13 @@ pipeline {
                         echo "Displaying Python script output..."
                         bat "type prediction_output.log"
 
-                        // Extract the latest prediction file from the log
+                        if (!fileExists("prediction_output.log")) {
+                            echo "❌ ERROR: prediction_output.log not found!"
+                            error("Prediction script did not run correctly.")
+                        }
+
                         def logContent = readFile(file: "prediction_output.log")
-                        def predictionFileMatch = logContent =~ /Prediction written to: (.*\.json)/
+                        def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
 
                         if (predictionFileMatch) {
                             env.PREDICTION_FILE_PATH = predictionFileMatch[0][1].trim()
@@ -166,7 +173,6 @@ pipeline {
                             error("Prediction file was not generated correctly. Check 'prediction_output.log' for details.")
                         }
 
-                        // Ensure the prediction file exists before displaying it
                         if (fileExists(env.PREDICTION_FILE_PATH)) {
                             echo "Displaying contents of the prediction file: ${env.PREDICTION_FILE_PATH}"
                             bat "type \"${env.PREDICTION_FILE_PATH}\""
@@ -182,9 +188,8 @@ pipeline {
         stage('Commit & Push to Git') {
             steps {
                 echo 'Committing and pushing updated logs to Git...'
-
                 script {
-                    dir(env.WORKSPACE_DIR) {  // Ensure execution in D:/machinelearning
+                    dir(env.WORKSPACE_DIR) {
                         def gitUser = "vamsimohanyacham"
                         def gitEmail = "vamsimohanyacham@gmail.com"
 
@@ -202,3 +207,4 @@ pipeline {
         }
     }
 }
+
