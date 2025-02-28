@@ -106,6 +106,151 @@
 
 
 
+// pipeline {
+//     agent any
+
+//     environment {
+//         WORKSPACE_DIR = "D:/machinelearning"
+//         VENV_PATH = "${WORKSPACE_DIR}/venv"
+//         SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"
+//         PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"
+//         CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"
+//         PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"
+//         GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
+//         GIT_BRANCH = "main"
+//         PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
+//     }
+
+//     stages {
+//         stage('Set up Python Environment') {
+//             steps {
+//                 script {
+//                     dir(env.WORKSPACE_DIR) {
+//                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
+//                             echo 'Creating virtual environment...'
+//                             bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
+//                             bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
+//                         }
+
+//                         echo 'Upgrading pip and installing dependencies...'
+//                         bat """
+//                             call ${env.VENV_PATH}/Scripts/activate
+//                             call python -m pip install --upgrade pip
+//                             call pip install pandas scikit-learn
+//                         """
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage('Run ML Error Prediction') {
+//             steps {
+//                 script {
+//                     dir(env.WORKSPACE_DIR) {
+//                         echo "Running prediction model..."
+//                         bat """
+//                             call ${env.VENV_PATH}/Scripts/activate
+//                             call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+//                         """
+
+//                         echo "Displaying Python script output..."
+//                         bat "type prediction_output.log"
+
+//                         if (!fileExists("prediction_output.log")) {
+//                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
+//                         }
+
+//                         // Extract the prediction file path from the log
+//                         def logContent = readFile(file: "prediction_output.log")
+//                         def predictionFilePath = ""
+//                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
+
+//                         if (predictionFileMatch.find()) {
+//                             predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")
+//                             echo "✅ Prediction file detected: ${predictionFilePath}"
+//                         } else {
+//                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
+//                         }
+
+//                         // ✅ Debugging: Print file path before checking existence
+//                         echo "🔍 Checking if prediction file exists at: ${predictionFilePath}"
+
+//                         // ✅ Normalize & Convert Path
+//                         if (!predictionFilePath.startsWith("D:/")) {
+//                             predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
+//                         }
+
+//                         // ✅ Print Directory Contents (Debugging)
+//                         echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
+//                         bat "dir /B \"${env.PREDICTION_FOLDER}\""
+
+//                         // ✅ Wait for File Creation
+//                         sleep(time: 5, unit: 'SECONDS')
+
+//                         // ✅ Ensure file path is not empty
+//                         if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+//                             error("❌ ERROR: Extracted prediction file path is empty!")
+//                         }
+
+//                         // ✅ Check if File Exists
+//                         if (fileExists(predictionFilePath)) {
+//                             echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
+//                             env.PREDICTION_FILE_PATH = "${predictionFilePath}"
+//                         } else {
+//                             error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+
+//         stage('Commit & Push to Git') {
+//             steps {
+//                 script {
+//                     dir(env.WORKSPACE_DIR) {
+//                         def gitUser = "vamsimohanyacham"
+//                         def gitEmail = "vamsimohanyacham@gmail.com"
+
+//                         // ✅ Prevent Git from Asking for Credentials
+//                         bat """
+//                             git config --global user.name "${gitUser}"
+//                             git config --global user.email "${gitEmail}"
+//                             git config --global credential.helper store
+//                         """
+
+//                         // ✅ Ensure files exist before adding to Git
+//                         if (fileExists(env.PREDICTION_FILE_PATH)) {
+//                             echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
+//                             bat "git add \"${env.PREDICTION_FILE_PATH}\""
+//                         } else {
+//                             error("❌ ERROR: Prediction file does not exist. Cannot commit.")
+//                         }
+
+//                         if (fileExists(env.CSV_FILE)) {
+//                             echo "✅ Adding CSV file to Git: ${env.CSV_FILE}"
+//                             bat "git add \"${env.CSV_FILE}\""
+//                         } else {
+//                             echo "⚠️ WARNING: CSV file not found, skipping commit."
+//                         }
+
+//                         // ✅ Sleep to Avoid Git Lock Issues
+//                         echo "⏳ Waiting before pushing to Git..."
+//                         sleep(time: 2, unit: 'SECONDS')
+
+//                         // ✅ Ensure a commit happens only if there are changes
+//                         bat """
+//                             git diff --cached --exit-code || (
+//                                 git commit -m "Updated prediction logs and build logs from Jenkins"
+//                                 git push origin ${env.GIT_BRANCH}
+//                             )
+//                         """
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// }
+
 pipeline {
     agent any
 
@@ -163,24 +308,22 @@ pipeline {
                         // Extract the prediction file path from the log
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
+
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")
+                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extracting only the string
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
                         }
-
-                        // ✅ Debugging: Print file path before checking existence
-                        echo "🔍 Checking if prediction file exists at: ${predictionFilePath}"
 
                         // ✅ Normalize & Convert Path
                         if (!predictionFilePath.startsWith("D:/")) {
                             predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
                         }
 
-                        // ✅ Print Directory Contents (Debugging)
+                        // ✅ Debugging: Print Directory Contents
                         echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
                         bat "dir /B \"${env.PREDICTION_FOLDER}\""
 
@@ -195,7 +338,7 @@ pipeline {
                         // ✅ Check if File Exists
                         if (fileExists(predictionFilePath)) {
                             echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
-                            env.PREDICTION_FILE_PATH = "${predictionFilePath}"
+                            env.PREDICTION_FILE_PATH = predictionFilePath
                         } else {
                             error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
                         }
