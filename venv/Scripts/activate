@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\ProgramData\Jenkins\.jenkins\jobs\test\workspace\venv"
+VIRTUAL_ENV="D:\machinelearning\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

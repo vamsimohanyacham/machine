@@ -110,25 +110,27 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "D:/machinelearning"  // Root directory
-        VENV_PATH = "${WORKSPACE_DIR}/venv"  // Virtual environment
-        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  // Scripts folder
-        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  // Prediction log folder
-        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  // CSV file path
-        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
-        GIT_BRANCH = "main"  // Target branch
-        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  // Update this path
+        WORKSPACE_DIR = "D:/machinelearning"  
+        VENV_PATH = "${WORKSPACE_DIR}/venv"  
+        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  
+        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  
+        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  
+        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  
+        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  
+        GIT_BRANCH = "main"  
+        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  
     }
 
     stages {
         stage('Set up Python Environment') {
             steps {
-                echo 'Setting up Python virtual environment and installing dependencies...'
+                echo 'Setting up Python virtual environment...'
                 script {
                     dir(env.WORKSPACE_DIR) {
+                        // Check if the virtual environment exists and is valid
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
-                            echo 'Creating virtual environment...'
+                            echo 'Creating new virtual environment...'
+                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"  // Remove old venv if it exists
                             bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
                         }
 
@@ -167,7 +169,7 @@ pipeline {
 
                         def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch.group(1).trim()  // ✅ Convert to plain string
+                            predictionFilePath = predictionFileMatch.group(1).trim()
                             echo "✅ Using dynamically detected prediction file: ${predictionFilePath}"
                         } else {
                             echo "❌ ERROR: Could not determine the prediction file name."
@@ -182,7 +184,6 @@ pipeline {
                             error("Prediction file was not generated. Check 'prediction_output.log' for errors.")
                         }
 
-                        // ✅ Store the detected prediction file as an environment variable for Git commit
                         env.PREDICTION_FILE_PATH = predictionFilePath
                     }
                 }
@@ -197,13 +198,11 @@ pipeline {
                         def gitUser = "vamsimohanyacham"
                         def gitEmail = "vamsimohanyacham@gmail.com"
 
-                        // Ensure Git is correctly configured
                         bat """
                             git config --global user.name "${gitUser}"
                             git config --global user.email "${gitEmail}"
                         """
 
-                        // Verify that the prediction file exists before committing
                         if (fileExists(env.PREDICTION_FILE_PATH)) {
                             echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
                             bat "git add \"${env.PREDICTION_FILE_PATH}\""
@@ -212,7 +211,6 @@ pipeline {
                             error("Cannot commit: Prediction file missing.")
                         }
 
-                        // Verify that the CSV file exists before committing
                         if (fileExists(env.CSV_FILE)) {
                             echo "✅ Adding CSV file to Git: ${env.CSV_FILE}"
                             bat "git add \"${env.CSV_FILE}\""
@@ -220,7 +218,6 @@ pipeline {
                             echo "❌ WARNING: CSV file does not exist, skipping commit."
                         }
 
-                        // Commit and push only if there are changes
                         bat """
                             git diff --cached --exit-code || (
                                 git commit -m "Updated prediction logs and build logs from Jenkins"
@@ -233,4 +230,5 @@ pipeline {
         }
     }
 }
+
 
