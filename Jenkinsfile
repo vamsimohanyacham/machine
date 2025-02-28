@@ -197,13 +197,35 @@ pipeline {
                         def gitUser = "vamsimohanyacham"
                         def gitEmail = "vamsimohanyacham@gmail.com"
 
+                        // Ensure Git is correctly configured
                         bat """
                             git config --global user.name "${gitUser}"
                             git config --global user.email "${gitEmail}"
-                            git add "${env.PREDICTION_FILE_PATH}"
-                            git add "${env.CSV_FILE}"
-                            git commit -m "Updated prediction logs and build logs from Jenkins"
-                            git push origin ${env.GIT_BRANCH}
+                        """
+
+                        // Verify that the prediction file exists before committing
+                        if (fileExists(env.PREDICTION_FILE_PATH)) {
+                            echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
+                            bat "git add \"${env.PREDICTION_FILE_PATH}\""
+                        } else {
+                            echo "❌ ERROR: Prediction file does not exist, skipping commit."
+                            error("Cannot commit: Prediction file missing.")
+                        }
+
+                        // Verify that the CSV file exists before committing
+                        if (fileExists(env.CSV_FILE)) {
+                            echo "✅ Adding CSV file to Git: ${env.CSV_FILE}"
+                            bat "git add \"${env.CSV_FILE}\""
+                        } else {
+                            echo "❌ WARNING: CSV file does not exist, skipping commit."
+                        }
+
+                        // Commit and push only if there are changes
+                        bat """
+                            git diff --cached --exit-code || (
+                                git commit -m "Updated prediction logs and build logs from Jenkins"
+                                git push origin ${env.GIT_BRANCH}
+                            )
                         """
                     }
                 }
@@ -211,3 +233,4 @@ pipeline {
         }
     }
 }
+
