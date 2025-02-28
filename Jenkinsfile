@@ -82,25 +82,26 @@ pipeline {
         }
 
         stage('Commit & Push to Git') {
-            steps {
-                echo 'Committing and pushing updated logs to Git...'
+    steps {
+        echo 'Committing and pushing updated logs to Git...'
 
-                script {
-                    def gitUser = "vamsimohanyacham"
-                    def gitEmail = "vamsimohanyacham@gmail.com"
+        script {
+            def gitUser = "vamsimohanyacham"
+            def gitEmail = "vamsimohanyacham@gmail.com"
 
-                    bat """
-                        cd ${env.WORKSPACE_DIR}
-                        git config --global user.name "${gitUser}"
-                        git config --global user.email "${gitEmail}"
-                        git add "${env.PREDICTION_FILE_PATH}"
-                        git add "${env.CSV_FILE}"
-                        git commit -m "Updated prediction logs and build logs from Jenkins"
-                        git push origin ${env.GIT_BRANCH}
-                    """
-                }
-            }
+            bat """
+                cd /d ${env.WORKSPACE_DIR}  && ^
+                git config --global user.name "${gitUser}"  && ^
+                git config --global user.email "${gitEmail}"  && ^
+                git add "${env.PREDICTION_FILE_PATH}"  && ^
+                git add "${env.CSV_FILE}"  && ^
+                git commit -m "Updated prediction logs and build logs from Jenkins"  && ^
+                git push origin ${env.GIT_BRANCH}
+            """
         }
+    }
+}
+
     }
 }
 
