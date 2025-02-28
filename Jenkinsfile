@@ -165,7 +165,7 @@ pipeline {
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch.group(1).trim()
+                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")  // ✅ Convert slashes
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
