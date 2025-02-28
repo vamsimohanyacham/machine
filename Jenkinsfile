@@ -271,13 +271,15 @@ pipeline {
             steps {
                 script {
                     dir(env.WORKSPACE_DIR) {
+                        echo '🔍 Checking if virtual environment exists...'
+
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
-                            echo 'Creating virtual environment...'
+                            echo '⚠️ Virtual environment not found. Creating a new one...'
                             bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
                             bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
                         }
 
-                        echo 'Upgrading pip and installing dependencies...'
+                        echo '⬆️ Upgrading pip and installing dependencies...'
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate
                             call python -m pip install --upgrade pip
@@ -292,13 +294,13 @@ pipeline {
             steps {
                 script {
                     dir(env.WORKSPACE_DIR) {
-                        echo "Running prediction model..."
+                        echo "🚀 Running prediction model..."
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate
                             call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
                         """
 
-                        echo "Displaying Python script output..."
+                        echo "📜 Displaying Python script output..."
                         bat "type prediction_output.log"
 
                         if (!fileExists("prediction_output.log")) {
