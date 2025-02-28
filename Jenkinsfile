@@ -162,13 +162,13 @@ pipeline {
 
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
-                        def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
+                        def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
                             predictionFilePath = predictionFileMatch.group(1).trim()
-                            echo "✅ Using dynamically detected prediction file: ${predictionFilePath}"
+                            echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
-                            error("❌ ERROR: Could not determine the prediction file name. Check 'prediction_output.log'.")
+                            error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
                         }
 
                         if (fileExists(predictionFilePath)) {
@@ -223,6 +223,7 @@ pipeline {
         }
     }
 }
+
 
 
 
