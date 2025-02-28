@@ -145,8 +145,6 @@ pipeline {
 
         stage('Run ML Error Prediction') {
             steps {
-                echo 'Running error prediction...'
-
                 script {
                     dir(env.WORKSPACE_DIR) {
                         echo "Running prediction model..."
@@ -158,33 +156,40 @@ pipeline {
                         echo "Displaying Python script output..."
                         bat "type prediction_output.log"
 
-                        // Ensure the log file exists
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
 
-                        // Extract prediction file from logs
+                        // Extract the prediction file path from the log
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
 
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")  // ✅ Fix slashes
+                            predictionFilePath = predictionFileMatch.group(1).trim().replace("\\", "/")
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
                         }
 
-                        // Ensure the prediction file exists
-                        if (fileExists(predictionFilePath)) {
-                            echo "Displaying contents of the prediction file: ${predictionFilePath}"
-                            bat "type \"${predictionFilePath}\""
-                        } else {
-                            error("❌ ERROR: Prediction file not found at ${predictionFilePath}. Check 'prediction_output.log'.")
+                        // ✅ Debugging: Print file path before checking existence
+                        echo "🔍 Checking if prediction file exists at: ${predictionFilePath}"
+
+                        // ✅ Ensure the script has time to write the file before checking existence
+                        sleep(time: 5, unit: 'SECONDS')
+
+                        // ✅ Ensure file path is not empty
+                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+                            error("❌ ERROR: Extracted prediction file path is empty!")
                         }
 
-                        // ✅ Store the detected filename as a plain string in the environment variable
-                        env.PREDICTION_FILE_PATH = "${predictionFilePath}"
+                        // ✅ Check file existence
+                        if (fileExists(predictionFilePath)) {
+                            echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
+                            env.PREDICTION_FILE_PATH = "${predictionFilePath}"
+                        } else {
+                            error("❌ ERROR: Prediction file not found at ${predictionFilePath}. Check script execution and log output.")
+                        }
                     }
                 }
             }
@@ -192,8 +197,6 @@ pipeline {
 
         stage('Commit & Push to Git') {
             steps {
-                echo 'Committing and pushing updated logs to Git...'
-
                 script {
                     dir(env.WORKSPACE_DIR) {
                         def gitUser = "vamsimohanyacham"
@@ -232,6 +235,7 @@ pipeline {
         }
     }
 }
+
 
 
 
