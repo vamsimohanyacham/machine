@@ -81,7 +81,6 @@ pipeline {
             }
         }
 
-        stage('Commit & Push to Git') {
     steps {
         echo 'Committing and pushing updated logs to Git...'
 
