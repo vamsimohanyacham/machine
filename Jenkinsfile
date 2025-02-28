@@ -110,15 +110,15 @@ pipeline {
     agent any
 
     environment {
-        WORKSPACE_DIR = "D:/machinelearning"  
-        VENV_PATH = "${WORKSPACE_DIR}/venv"  
-        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  
-        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  
-        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  
-        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  
-        GIT_BRANCH = "main"  
-        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  
+        WORKSPACE_DIR = "D:/machinelearning"  // Root directory
+        VENV_PATH = "${WORKSPACE_DIR}/venv"  // Virtual environment
+        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"  // Scripts folder
+        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"  // Prediction log folder
+        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"  // CSV file path
+        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
+        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
+        GIT_BRANCH = "main"  // Target branch
+        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"  // Update this path
     }
 
     stages {
@@ -127,10 +127,10 @@ pipeline {
                 echo 'Setting up Python virtual environment...'
                 script {
                     dir(env.WORKSPACE_DIR) {
-                        // Check if the virtual environment exists and is valid
+                        // Delete and recreate virtual environment if it's corrupted
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
-                            echo 'Creating new virtual environment...'
-                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"  // Remove old venv if it exists
+                            echo 'Creating virtual environment...'
+                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
                             bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
                         }
 
@@ -230,5 +230,6 @@ pipeline {
         }
     }
 }
+
 
 
