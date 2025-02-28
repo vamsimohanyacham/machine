@@ -118,7 +118,7 @@ pipeline {
         PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"  // ML script
         GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"  // Git repository
         GIT_BRANCH = "main"  // Target branch
-        PYTHON_PATH = "C:/Users/YOUR_USER/AppData/Local/Programs/Python/Python39/python.exe"  // Update this to match your system
+        PYTHON_PATH = "C:\Users\MTL1020\AppData\Local\Programs\Python\Python39\python.exe"  // Update this to match your system
     }
 
     stages {
