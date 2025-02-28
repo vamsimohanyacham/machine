@@ -163,23 +163,27 @@ pipeline {
                         }
 
                         def logContent = readFile(file: "prediction_output.log")
-                        def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
+                        def predictionFilePath = ""
 
-                        if (predictionFileMatch) {
-                            env.PREDICTION_FILE_PATH = predictionFileMatch[0][1].trim()
-                            echo "✅ Using dynamically detected prediction file: ${env.PREDICTION_FILE_PATH}"
+                        def predictionFileMatch = logContent =~ /Prediction written to:\s*(.*\.json)/
+                        if (predictionFileMatch.find()) {
+                            predictionFilePath = predictionFileMatch.group(1).trim()  // ✅ Convert to plain string
+                            echo "✅ Using dynamically detected prediction file: ${predictionFilePath}"
                         } else {
                             echo "❌ ERROR: Could not determine the prediction file name."
                             error("Prediction file was not generated correctly. Check 'prediction_output.log' for details.")
                         }
 
-                        if (fileExists(env.PREDICTION_FILE_PATH)) {
-                            echo "Displaying contents of the prediction file: ${env.PREDICTION_FILE_PATH}"
-                            bat "type \"${env.PREDICTION_FILE_PATH}\""
+                        if (fileExists(predictionFilePath)) {
+                            echo "Displaying contents of the prediction file: ${predictionFilePath}"
+                            bat "type \"${predictionFilePath}\""
                         } else {
-                            echo "❌ ERROR: Prediction file not found at ${env.PREDICTION_FILE_PATH}"
+                            echo "❌ ERROR: Prediction file not found at ${predictionFilePath}"
                             error("Prediction file was not generated. Check 'prediction_output.log' for errors.")
                         }
+
+                        // ✅ Store the detected prediction file as an environment variable for Git commit
+                        env.PREDICTION_FILE_PATH = predictionFilePath
                     }
                 }
             }
