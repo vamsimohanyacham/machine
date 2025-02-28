@@ -175,7 +175,16 @@ pipeline {
                         // ✅ Debugging: Print file path before checking existence
                         echo "🔍 Checking if prediction file exists at: ${predictionFilePath}"
 
-                        // ✅ Ensure the script has time to write the file before checking existence
+                        // ✅ Normalize & Convert Path
+                        if (!predictionFilePath.startsWith("D:/")) {
+                            predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
+                        }
+
+                        // ✅ Print Directory Contents (Debugging)
+                        echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
+                        bat "dir /B \"${env.PREDICTION_FOLDER}\""
+
+                        // ✅ Wait for File Creation
                         sleep(time: 5, unit: 'SECONDS')
 
                         // ✅ Ensure file path is not empty
@@ -183,12 +192,12 @@ pipeline {
                             error("❌ ERROR: Extracted prediction file path is empty!")
                         }
 
-                        // ✅ Check file existence
+                        // ✅ Check if File Exists
                         if (fileExists(predictionFilePath)) {
                             echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
                             env.PREDICTION_FILE_PATH = "${predictionFilePath}"
                         } else {
-                            error("❌ ERROR: Prediction file not found at ${predictionFilePath}. Check script execution and log output.")
+                            error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
                         }
                     }
                 }
@@ -235,6 +244,7 @@ pipeline {
         }
     }
 }
+
 
 
 
