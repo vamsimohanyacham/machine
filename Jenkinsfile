@@ -456,15 +456,11 @@ pipeline {
 
                         // Extract the prediction file path from the log file content
                         def logContent = readFile(file: "prediction_output.log")
-                        def predictionFilePath = ""
+                        def predictionFilePath = extractPredictionFilePath(logContent)  // Use the @NonCPS method to handle regex
 
-                        // Use regex to find the prediction file path from the log
-                        def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
-                        if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch[0][1].trim()  // Extract the file path
-                            echo "✅ Prediction file detected: ${predictionFilePath}"
-                        } else {
-                            error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
+                        // Ensure the prediction file path is not empty
+                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+                            error("❌ ERROR: Extracted prediction file path is empty!")
                         }
 
                         // Normalize & Convert Path if necessary
@@ -478,11 +474,6 @@ pipeline {
 
                         // Wait for the file to be created if necessary
                         sleep(time: 5, unit: 'SECONDS')
-
-                        // Ensure the prediction file path is not empty
-                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
-                            error("❌ ERROR: Extracted prediction file path is empty!")
-                        }
 
                         // Ensure the file exists before proceeding
                         if (fileExists(predictionFilePath)) {
@@ -511,3 +502,12 @@ pipeline {
     }
 }
 
+@NonCPS
+def extractPredictionFilePath(String logContent) {
+    // Extract the prediction file path from the log content using regex
+    def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
+    if (predictionFileMatch.find()) {
+        return predictionFileMatch[0][1].trim()  // Return the file path as a string
+    }
+    return null  // Return null if no match is found
+}
