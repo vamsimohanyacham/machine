@@ -472,13 +472,6 @@ pipeline {
                             predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
                         }
 
-                        // Debugging: Print the directory contents
-                        echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
-                        bat "dir /B \"${env.PREDICTION_FOLDER}\""
-
-                        // Wait for the file to be created if necessary
-                        sleep(time: 5, unit: 'SECONDS')
-
                         // Ensure the prediction file path is not empty
                         if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
                             error("❌ ERROR: Extracted prediction file path is empty!")
