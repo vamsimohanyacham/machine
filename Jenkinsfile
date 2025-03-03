@@ -465,46 +465,13 @@ pipeline {
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
-                        }
-
-                        // Normalize & Convert Path if necessary
-                        if (!predictionFilePath.startsWith("D:/")) {
-                            predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
-                        }
-
-                        // Ensure the prediction file path is not empty
-                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
-                            error("❌ ERROR: Extracted prediction file path is empty!")
-                        }
-
-                        // Ensure the file exists before proceeding
-                        if (fileExists(predictionFilePath)) {
-                            echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
-                            env.PREDICTION_FILE_PATH = predictionFilePath  // Set the path to an environment variable
-                        } else {
-                            error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
-                        }
+                        }                      
                     }
                 }
             }
         }
 
-        stage('Post-prediction Processing') {
-            steps {
-                script {
-                    // Example step to use the prediction file after verifying it exists
-                    echo "📊 Post-processing prediction file..."
-                    echo "File path: ${env.PREDICTION_FILE_PATH}"
-
-                    // Optionally, you can add more steps to process the prediction data or move it elsewhere.
-                    // Example: Move the prediction file to a different directory
-                    bat """
-                        move /Y "${env.PREDICTION_FILE_PATH}" "D:/machinelearning/processed_predictions/"
-                    """
-                }
-            }
-        }
-    }
+        
 
     post {
         always {
