@@ -397,7 +397,7 @@
 // }
 
 pipeline {
-    agent any
+    agent any  // This allows the pipeline to run on any available node.
 
     environment {
         WORKSPACE_DIR = "D:/machinelearning"
@@ -415,13 +415,13 @@ pipeline {
         stage('Set up Python Environment') {
             steps {
                 script {
+                    echo '🔍 Checking if virtual environment exists...'
                     dir(env.WORKSPACE_DIR) {
-                        echo '🔍 Checking if virtual environment exists...'
-
+                        // Check if virtual environment exists, if not, create it.
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
                             echo '⚠️ Virtual environment not found. Creating a new one...'
-                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
-                            bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
+                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"  // Delete existing env if present
+                            bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"  // Create new venv
                         }
 
                         echo '⬆️ Upgrading pip and installing dependencies...'
@@ -438,65 +438,91 @@ pipeline {
         stage('Run ML Error Prediction') {
             steps {
                 script {
+                    echo "🚀 Running prediction model..."
                     dir(env.WORKSPACE_DIR) {
-                        echo "🚀 Running prediction model..."
+                        // Run the Python script and capture the output in a log file
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate
                             call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
                         """
 
                         echo "📜 Displaying Python script output..."
-                        bat "type prediction_output.log"
+                        bat "type prediction_output.log"  // Display log file content for debugging
 
+                        // Check if log file was generated
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
 
-                        // Extract the prediction file path from the log
+                        // Extract the prediction file path from the log file content
                         def logContent = readFile(file: "prediction_output.log")
                         def predictionFilePath = ""
 
+                        // Use regex to find the prediction file path from the log
                         def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
-
                         if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extract only the filename as a string
+                            predictionFilePath = predictionFileMatch[0][1].trim()  // Extract the file path
                             echo "✅ Prediction file detected: ${predictionFilePath}"
                         } else {
                             error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
                         }
 
-                        // ✅ Normalize & Convert Path
+                        // Normalize & Convert Path if necessary
                         if (!predictionFilePath.startsWith("D:/")) {
                             predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
                         }
 
-                        // ✅ Debugging: Print Directory Contents
+                        // Debugging: Print the directory contents
                         echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
                         bat "dir /B \"${env.PREDICTION_FOLDER}\""
 
-                        // ✅ Wait for File Creation (Check multiple times)
-                        def maxRetries = 5
-                        def retryCount = 0
-                        def fileFound = false
-                        while (retryCount < maxRetries && !fileFound) {
-                            echo "⏳ Checking for prediction file... Attempt ${retryCount + 1}/${maxRetries}"
-                            if (fileExists(predictionFilePath)) {
-                                fileFound = true
-                                echo "✅ Prediction file found at ${predictionFilePath}."
-                                env.PREDICTION_FILE_PATH = predictionFilePath
-                            } else {
-                                retryCount++
-                                sleep(time: 5, unit: 'SECONDS')
-                            }
+                        // Wait for the file to be created if necessary
+                        sleep(time: 5, unit: 'SECONDS')
+
+                        // Ensure the prediction file path is not empty
+                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+                            error("❌ ERROR: Extracted prediction file path is empty!")
                         }
 
-                        if (!fileFound) {
-                            error("❌ ERROR: Prediction file not found after ${maxRetries} attempts.")
+                        // Ensure the file exists before proceeding
+                        if (fileExists(predictionFilePath)) {
+                            echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
+                            env.PREDICTION_FILE_PATH = predictionFilePath  // Set the path to an environment variable
+                        } else {
+                            error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
                         }
                     }
                 }
             }
         }
+
+        stage('Post-prediction Processing') {
+            steps {
+                script {
+                    // Example step to use the prediction file after verifying it exists
+                    echo "📊 Post-processing prediction file..."
+                    echo "File path: ${env.PREDICTION_FILE_PATH}"
+
+                    // Optionally, you can add more steps to process the prediction data or move it elsewhere.
+                    // Example: Move the prediction file to a different directory
+                    bat """
+                        move /Y "${env.PREDICTION_FILE_PATH}" "D:/machinelearning/processed_predictions/"
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up...'
+            // Clean up if necessary, like deactivating the virtual environment or removing temp files
+        }
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check logs for more details.'
+        }
     }
 }
-
