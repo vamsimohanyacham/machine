@@ -348,53 +348,23 @@ pipeline {
                 }
             }
         }
+    }
 
-        // stage('Commit & Push to Git') {
-        //     steps {
-        //         script {
-        //             dir(env.WORKSPACE_DIR) {
-        //                 def gitUser = "vamsimohanyacham"
-        //                 def gitEmail = "vamsimohanyacham@gmail.com"
-
-        //                 // ✅ Prevent Git from Asking for Credentials
-        //                 bat """
-        //                     git config --global user.name "${gitUser}"
-        //                     git config --global user.email "${gitEmail}"
-        //                     git config --global credential.helper store
-        //                 """
-
-        //                 // ✅ Ensure files exist before adding to Git
-        //                 if (fileExists(env.PREDICTION_FILE_PATH)) {
-        //                     echo "✅ Adding prediction file to Git: ${env.PREDICTION_FILE_PATH}"
-        //                     bat "git add \"${env.PREDICTION_FILE_PATH}\""
-        //                 } else {
-        //                     error("❌ ERROR: Prediction file does not exist. Cannot commit.")
-        //                 }
-
-        //                 if (fileExists(env.CSV_FILE)) {
-        //                     echo "✅ Adding CSV file to Git: ${env.CSV_FILE}"
-        //                     bat "git add \"${env.CSV_FILE}\""
-        //                 } else {
-        //                     echo "⚠️ WARNING: CSV file not found, skipping commit."
-        //                 }
-
-        //                 // ✅ Sleep to Avoid Git Lock Issues
-        //                 echo "⏳ Waiting before pushing to Git..."
-        //                 sleep(time: 2, unit: 'SECONDS')
-
-        //                 // ✅ Ensure a commit happens only if there are changes
-        //                 bat """
-        //                     git diff --cached --exit-code || (
-        //                         git commit -m "Updated prediction logs and build logs from Jenkins"
-        //                         git push origin ${env.GIT_BRANCH}
-        //                     )
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
+    post {
+        always {
+            echo 'Cleaning up...'
+            // Clean up if necessary, like deactivating the virtual environment or removing temp files
+            bat "deactivate || exit 0"  // Deactivate virtual environment if still active
+        }
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check logs for more details.'
+        }
     }
 }
+
 
 // pipeline {
 //     agent any  // This allows the pipeline to run on any available node.
