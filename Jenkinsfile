@@ -291,63 +291,65 @@ pipeline {
         }
 
         stage('Run ML Error Prediction') {
-            steps {
-                script {
-                    dir(env.WORKSPACE_DIR) {
-                        echo "🚀 Running prediction model..."
-                        bat """
-                            call ${env.VENV_PATH}/Scripts/activate
-                            call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
-                        """
+    steps {
+        script {
+            dir(env.WORKSPACE_DIR) {
+                echo "🚀 Running prediction model..."
+                bat """
+                    call ${env.VENV_PATH}/Scripts/activate
+                    call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+                """
 
-                        echo "📜 Displaying Python script output..."
-                        bat "type prediction_output.log"
+                echo "📜 Displaying Python script output..."
+                bat "type prediction_output.log"
 
-                        if (!fileExists("prediction_output.log")) {
-                            error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
-                        }
+                if (!fileExists("prediction_output.log")) {
+                    error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
+                }
 
-                        // Extract the prediction file path from the log
-                        def logContent = readFile(file: "prediction_output.log")
-                        def predictionFilePath = ""
+                // Extract the prediction file path from the log using simple string operations
+                def logContent = readFile(file: "prediction_output.log")
+                def predictionFilePath = ""
 
-                        def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
+                // Use regex to find the prediction file path
+                def predictionFileMatch = logContent.find(/Prediction written to:\s*(.*\.json)/)
 
-                        if (predictionFileMatch.find()) {
-                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extract only the filename as a string
-                            echo "✅ Prediction file detected: ${predictionFilePath}"
-                        } else {
-                            error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
-                        }
+                if (predictionFileMatch) {
+                    predictionFilePath = predictionFileMatch.trim()  // ✅ Extract only the filename as a string
+                    echo "✅ Prediction file detected: ${predictionFilePath}"
+                } else {
+                    error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
+                }
 
-                        // ✅ Normalize & Convert Path
-                        if (!predictionFilePath.startsWith("D:/")) {
-                            predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
-                        }
+                // ✅ Normalize & Convert Path
+                if (!predictionFilePath.startsWith("D:/")) {
+                    predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
+                }
 
-                        // ✅ Debugging: Print Directory Contents
-                        echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
-                        bat "dir /B \"${env.PREDICTION_FOLDER}\""
+                // ✅ Debugging: Print Directory Contents
+                echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
+                bat "dir /B \"${env.PREDICTION_FOLDER}\""
 
-                        // ✅ Wait for File Creation
-                        sleep(time: 5, unit: 'SECONDS')
+                // ✅ Wait for File Creation
+                sleep(time: 5, unit: 'SECONDS')
 
-                        // ✅ Ensure file path is not empty
-                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
-                            error("❌ ERROR: Extracted prediction file path is empty!")
-                        }
+                // ✅ Ensure file path is not empty
+                if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+                    error("❌ ERROR: Extracted prediction file path is empty!")
+                }
 
-                        // ✅ Check if File Exists
-                        if (fileExists(predictionFilePath)) {
-                            echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
-                            env.PREDICTION_FILE_PATH = predictionFilePath
-                        } else {
-                            error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
-                        }
-                    }
+                // ✅ Check if File Exists
+                if (fileExists(predictionFilePath)) {
+                    echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
+                    env.PREDICTION_FILE_PATH = predictionFilePath
+                } else {
+                    error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
                 }
             }
         }
+    }
+}
+
     }
 
    post {
