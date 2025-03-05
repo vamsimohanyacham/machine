@@ -306,20 +306,6 @@ pipeline {
                 if (!fileExists("prediction_output.log")) {
                     error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                 }
-
-                // Directly set the prediction file path as you mentioned
-                def predictionFilePath = "D:/machinelearning/build_log/build_logs/prediction112.json"
-
-                // Log the full prediction file path for debugging
-                echo "🔍 Full prediction file path: ${predictionFilePath}"
-
-                // ✅ Ensure the file exists
-                if (fileExists(predictionFilePath)) {
-                    echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
-                    env.PREDICTION_FILE_PATH = predictionFilePath
-                } else {
-                    error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
-                }
             }
         }
     }
