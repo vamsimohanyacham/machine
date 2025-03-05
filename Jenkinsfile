@@ -416,14 +416,13 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Cloning the Git repository with credentials
                     echo 'Cloning the Git repository...'
                     deleteDir() // Clean the workspace before cloning the repository
-                    checkout([
-                        $class: 'GitSCM',
-                        branches: [[name: '*/main']],
+                    checkout([ 
+                        $class: 'GitSCM', 
+                        branches: [[name: '*/main']], 
                         userRemoteConfigs: [[
-                            url: env.GIT_REPO,
+                            url: env.GIT_REPO, 
                             credentialsId: env.GIT_CREDENTIALS_ID
                         ]]
                     ])
@@ -506,25 +505,28 @@ pipeline {
             }
         }
 
-        // stage('Push Changes to Git') {
-        //     steps {
-        //         script {
-        //             // Add changes, commit, and push to the repository
-        //             echo '📤 Pushing changes to Git repository...'
-        //             bat """
-        //                 git add .
-        //                 git commit -m "Update model prediction results"
-        //                 git push origin main
-        //             """
-        //         }
-        //     }
-        // }
+        // Uncomment and modify this section if you want to push changes to the Git repository
+        /*
+        stage('Push Changes to Git') {
+            steps {
+                script {
+                    echo '📤 Pushing changes to Git repository...'
+                    bat """
+                        git add .
+                        git commit -m "Update model prediction results"
+                        git push origin main
+                    """
+                }
+            }
+        }
+        */
     }
 
     post {
         always {
             echo 'Cleaning up...'
             // Clean up if necessary, like deactivating the virtual environment or removing temp files
+            bat "deactivate || exit 0"  // Deactivate virtual environment if still active
         }
         success {
             echo '✅ Pipeline completed successfully!'
@@ -544,3 +546,4 @@ def extractPredictionFilePath(String logContent) {
     }
     return null  // Return null if no match is found
 }
+
