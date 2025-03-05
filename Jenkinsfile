@@ -350,19 +350,20 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            echo 'Cleaning up...'
-            // Clean up if necessary, like deactivating the virtual environment or removing temp files
-            bat "deactivate || exit 0"  // Deactivate virtual environment if still active
-        }
-        success {
-            echo '✅ Pipeline completed successfully!'
-        }
-        failure {
-            echo '❌ Pipeline failed. Check logs for more details.'
-        }
+   post {
+    always {
+        echo 'Cleaning up...'
+        // No need to deactivate the virtual environment explicitly on Windows
+        echo 'Virtual environment will be deactivated automatically on Windows.'
     }
+    success {
+        echo '✅ Pipeline completed successfully!'
+    }
+    failure {
+        echo '❌ Pipeline failed. Check logs for more details.'
+    }
+}
+
 }
 
 
