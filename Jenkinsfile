@@ -307,38 +307,13 @@ pipeline {
                     error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                 }
 
-                // Extract the prediction file path from the log using simple string operations
-                def logContent = readFile(file: "prediction_output.log")
-                def predictionFilePath = ""
+                // Directly set the prediction file path as you mentioned
+                def predictionFilePath = "D:/machinelearning/build_log/build_logs/prediction112.json"
 
-                // Use regex to find the prediction file path
-                def predictionFileMatch = logContent.find(/Prediction written to:\s*(.*\.json)/)
+                // Log the full prediction file path for debugging
+                echo "🔍 Full prediction file path: ${predictionFilePath}"
 
-                if (predictionFileMatch) {
-                    predictionFilePath = predictionFileMatch.trim()  // ✅ Extract only the filename as a string
-                    echo "✅ Prediction file detected: ${predictionFilePath}"
-                } else {
-                    error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
-                }
-
-                // ✅ Normalize & Convert Path
-                if (!predictionFilePath.startsWith("D:/")) {
-                    predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
-                }
-
-                // ✅ Debugging: Print Directory Contents
-                echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
-                bat "dir /B \"${env.PREDICTION_FOLDER}\""
-
-                // ✅ Wait for File Creation
-                sleep(time: 5, unit: 'SECONDS')
-
-                // ✅ Ensure file path is not empty
-                if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
-                    error("❌ ERROR: Extracted prediction file path is empty!")
-                }
-
-                // ✅ Check if File Exists
+                // ✅ Ensure the file exists
                 if (fileExists(predictionFilePath)) {
                     echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
                     env.PREDICTION_FILE_PATH = predictionFilePath
@@ -349,6 +324,7 @@ pipeline {
         }
     }
 }
+
 
     }
 
