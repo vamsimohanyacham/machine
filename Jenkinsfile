@@ -92,17 +92,13 @@ pipeline {
         PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
     }
 
-    stages {
-        stage('Checkout Git Repository') {
-            steps {
-                script {
-                    echo '🔄 Checking out the latest code from Git...'
-                    // Clone the repository and checkout the desired branch
-                    git branch: "${env.GIT_BRANCH}", url: "${env.GIT_REPO}"
-                }
-            }
-        }
+    parameters {
+        string(name: 'build_duration', defaultValue: '300', description: 'Build Duration (in seconds)')
+        string(name: 'dependency_changes', defaultValue: '0', description: 'Number of Dependency Changes')
+        string(name: 'failed_previous_builds', defaultValue: '0', description: 'Number of Failed Previous Builds')
+    }
 
+    stages {
         stage('Set up Python Environment') {
             steps {
                 script {
@@ -126,30 +122,57 @@ pipeline {
             }
         }
 
+        stage('Clone Git Repository') {
+            steps {
+                script {
+                    echo '🔄 Cloning Git repository...'
+                    git branch: 'main', url: 'https://github.com/vamsimohanyacham/machine.git'
+                }
+            }
+        }
+
         stage('Run ML Error Prediction') {
             steps {
                 script {
+                    echo "🚀 Running prediction model with dynamic input values..."
+
                     dir(env.WORKSPACE_DIR) {
-                        // Get parameters for prediction dynamically if needed, or use default values
-                        def build_duration = 300
-                        def dependency_changes = 0
-                        def failed_previous_builds = 0
-
-                        echo "🚀 Running prediction model with parameters build_duration=${build_duration}, dependency_changes=${dependency_changes}, failed_previous_builds=${failed_previous_builds}..."
-
-                        // Run Python script with dynamic parameters
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate
-                            call python ${env.PYTHON_SCRIPT} --build_duration ${build_duration} --dependency_changes ${dependency_changes} --failed_previous_builds ${failed_previous_builds} > prediction_output.log 2>&1
+                            call python ${env.PYTHON_SCRIPT} --build_duration ${params.build_duration} --dependency_changes ${params.dependency_changes} --failed_previous_builds ${params.failed_previous_builds} > prediction_output.log 2>&1
                         """
 
                         echo "📜 Displaying Python script output..."
                         bat "type prediction_output.log"
 
-                        // Check if the prediction output file is generated
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
+                    }
+                }
+            }
+        }
+
+        stage('Save Prediction Result') {
+            steps {
+                script {
+                    echo '💾 Saving prediction results...'
+
+                    dir(env.PREDICTION_FOLDER) {
+                        def predictionCount = 1
+                        // Check if the CSV file exists and determine the prediction count
+                        if (fileExists(env.CSV_FILE)) {
+                            def df = readCSV(file: env.CSV_FILE)
+                            predictionCount = df.size() + 1
+                        }
+
+                        def predictionFile = "prediction${predictionCount}.json"
+                        // Load the generated prediction from the log or an existing file
+                        def prediction = readJSON file: 'prediction_output.log'
+
+                        // Save the prediction result
+                        writeJSON file: predictionFile, json: prediction, pretty: true
+                        echo "✅ Prediction saved to: ${predictionFile}"
                     }
                 }
             }
@@ -162,16 +185,13 @@ pipeline {
             // No need to deactivate the virtual environment explicitly on Windows
             echo 'Virtual environment will be deactivated automatically on Windows.'
         }
+
         success {
             echo '✅ Pipeline completed successfully!'
         }
+
         failure {
             echo '❌ Pipeline failed. Check logs for more details.'
         }
     }
 }
-
-
-
-
-
