@@ -1,86 +1,105 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
-import joblib
-import argparse
-import json
 import os
+import json
+import pickle
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 
-def load_data(file_path):
-    data = pd.read_csv(file_path)
-    return data
+# Load trained model
+model_path = 'D:/machinelearning/trained_models/build_error_prediction_model.pkl'
+if not os.path.exists(model_path):
+    raise FileNotFoundError(f"Model file not found: {model_path}")
 
-def train_model(X_train, y_train):
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train, y_train)
-    return model
+with open(model_path, 'rb') as f:
+    model = pickle.load(f)
 
-def evaluate_model(model, X_test, y_test):
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred)
-    print(f'Accuracy: {accuracy}')
-    print(f'Classification Report:\n{report}')
+# Prediction function
+def make_prediction(build_duration, dependency_changes, failed_previous_builds):
+    input_data = pd.DataFrame([[build_duration, dependency_changes, failed_previous_builds]],
+                              columns=['build_duration', 'dependency_changes', 'failed_previous_builds'])
 
-def save_model(model, scaler, model_path, scaler_path):
-    joblib.dump(model, model_path)
-    joblib.dump(scaler, scaler_path)
-    print(f"Model saved to {model_path}")
-    print(f"Scaler saved to {scaler_path}")
+    # Validate inputs
+    if any(x is None or x < 0 for x in [build_duration, dependency_changes, failed_previous_builds]):
+        raise ValueError("❌ Invalid input values: All inputs must be non-negative integers.")
 
-def predict_error(model, scaler, build_data):
-    scaled_data = scaler.transform([build_data])
-    prediction = model.predict(scaled_data)
-    return prediction[0]
+    # Force failure for high-risk builds (Manual Override)
+    if build_duration > 350 or dependency_changes >= 3 or failed_previous_builds > 0:
+        return {
+            "status": "fail",
+            "message": "Potential issues detected in the build.",
+            "details": [
+                "Warning: Build duration is unusually long." if build_duration > 350 else "",
+                "Warning: Significant dependency changes detected." if dependency_changes >= 3 else "",
+                "Warning: The build has failed previously." if failed_previous_builds > 0 else ""
+            ]
+        }
 
-def save_prediction(prediction_result, prediction_file_path):
-    try:
-        os.makedirs(os.path.dirname(prediction_file_path), exist_ok=True)
-        with open(prediction_file_path, 'w') as f:
-            json.dump(prediction_result, f, indent=4)
-        print(f"Prediction saved to {prediction_file_path}")
-    except Exception as e:
-        print(f"Error saving prediction: {e}")
+    # Use trained model for prediction
+    prediction = model.predict(input_data)[0]
+    build_status = 'Success' if prediction == 0 else 'Fail'
 
-def main():
-    parser = argparse.ArgumentParser(description="Error prediction for Jenkins build logs")
-    parser.add_argument('--build_duration', type=int, required=True, help='Build duration in minutes')
-    parser.add_argument('--dependency_changes', type=int, required=True, help='Number of dependencies changed')
-    parser.add_argument('--failed_previous_builds', type=int, required=True, help='Number of failed previous builds')
-    parser.add_argument('--prediction_file', required=True, help='Path to save the prediction result')
-
-    args = parser.parse_args()
-
-    data = load_data('C:/ProgramData/Jenkins/.jenkins/jobs/test/workspace/scripts/build_logs.csv')
-    
-    X = data[['build_duration', 'dependency_changes', 'failed_previous_builds']]
-    y = data['build_status']
-
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_test_scaled = scaler.transform(X_test)
-
-    model = train_model(X_train_scaled, y_train)
-
-    evaluate_model(model, X_test_scaled, y_test)
-
-    save_model(model, scaler, 'build_error_predictor.pkl', 'scaler.pkl')
-
-    build_data = [args.build_duration, args.dependency_changes, args.failed_previous_builds]
-    prediction = predict_error(model, scaler, build_data)
-
-    prediction_result = {
-        "build_duration": args.build_duration,
-        "dependency_changes": args.dependency_changes,
-        "failed_previous_builds": args.failed_previous_builds,
-        "prediction": "Failure" if prediction == 1 else "Success"
+    return {
+        "status": build_status.lower(),
+        "message": "No potential issues detected in the build." if build_status == 'Success' else "Potential issues detected in the build.",
+        "details": []
     }
 
-    save_prediction(prediction_result, args.prediction_file)
+# Function to update build logs
+def update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, build_status):
+    if os.path.exists(csv_file):
+        df = pd.read_csv(csv_file)
+    else:
+        df = pd.DataFrame(columns=["build_duration", "dependency_changes", "failed_previous_builds", "build_status"])
+
+    # Append new data
+    new_data = pd.DataFrame({
+        "build_duration": [build_duration],
+        "dependency_changes": [dependency_changes],
+        "failed_previous_builds": [failed_previous_builds],
+        "build_status": [build_status]  # Store actual prediction result
+    })
+
+    df = pd.concat([df, new_data], ignore_index=True)
+    df.to_csv(csv_file, index=False)
+    print(f"✅ Build logs updated in {csv_file}")
+
+# Function to save prediction results
+def save_prediction_to_json(prediction, prediction_folder, prediction_count):
+    os.makedirs(prediction_folder, exist_ok=True)
+    prediction_file = os.path.join(prediction_folder, f"prediction{prediction_count}.json")
+
+    with open(prediction_file, 'w') as f:
+        json.dump(prediction, f, indent=4)
+
+    print(f"✅ Prediction written to: {prediction_file}")
+
+# Main function
+def main():
+    csv_file = 'D:/machinelearning/build_logs.csv'
+    prediction_folder = 'D:/machinelearning/build_log/build_logs'
+
+    # Check prediction count
+    if os.path.exists(csv_file):
+        df = pd.read_csv(csv_file)
+        prediction_count = len(df) + 1
+    else:
+        prediction_count = 1
+
+    # Test Case: High-risk build (Should FAIL)
+    build_duration = 200
+    dependency_changes = 0
+    failed_previous_builds = 0
+
+    # Make prediction
+    prediction = make_prediction(build_duration, dependency_changes, failed_previous_builds)
+
+    # Update logs
+    update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, prediction["status"])
+
+    # Save output
+    save_prediction_to_json(prediction, prediction_folder, prediction_count)
+
+    print("✅ Prediction and historical data updated successfully.")
 
 if __name__ == "__main__":
     main()
+
