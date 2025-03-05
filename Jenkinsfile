@@ -506,19 +506,19 @@ pipeline {
             }
         }
 
-        stage('Push Changes to Git') {
-            steps {
-                script {
-                    // Add changes, commit, and push to the repository
-                    echo '📤 Pushing changes to Git repository...'
-                    bat """
-                        git add .
-                        git commit -m "Update model prediction results"
-                        git push origin main
-                    """
-                }
-            }
-        }
+        // stage('Push Changes to Git') {
+        //     steps {
+        //         script {
+        //             // Add changes, commit, and push to the repository
+        //             echo '📤 Pushing changes to Git repository...'
+        //             bat """
+        //                 git add .
+        //                 git commit -m "Update model prediction results"
+        //                 git push origin main
+        //             """
+        //         }
+        //     }
+        // }
     }
 
     post {
