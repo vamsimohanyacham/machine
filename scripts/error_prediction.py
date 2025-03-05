@@ -85,9 +85,9 @@ def main():
         prediction_count = 1
 
     # Test Case: High-risk build (Should FAIL)
-    build_duration = 200
-    dependency_changes = 0
-    failed_previous_builds = 0
+    build_duration = 400
+    dependency_changes = 5
+    failed_previous_builds = 4
 
     # Make prediction
     prediction = make_prediction(build_duration, dependency_changes, failed_previous_builds)
