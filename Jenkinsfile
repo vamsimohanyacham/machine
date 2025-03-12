@@ -8,6 +8,8 @@ pipeline {
         PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"
         CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"
         PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"
+        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
+        GIT_BRANCH = "main"
         PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
     }
 
@@ -18,7 +20,6 @@ pipeline {
                     dir(env.WORKSPACE_DIR) {
                         echo '🔍 Checking if virtual environment exists...'
 
-                        // Check if the virtual environment exists and create it if it doesn't
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
                             echo '⚠️ Virtual environment not found. Creating a new one...'
                             bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
@@ -41,8 +42,6 @@ pipeline {
                 script {
                     dir(env.WORKSPACE_DIR) {
                         echo "🚀 Running prediction model..."
-
-                        // Run the Python script with the given parameters
                         bat """
                             call ${env.VENV_PATH}/Scripts/activate
                             call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
@@ -51,21 +50,48 @@ pipeline {
                         echo "📜 Displaying Python script output..."
                         bat "type prediction_output.log"
 
-                        // Check if the output log file exists
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
-                    }
-                }
-            }
-        }
 
-        stage('Post Actions') {
-            steps {
-                script {
-                    // Clean up or any final steps
-                    echo "🧹 Cleaning up..."
-                    echo "✅ Pipeline completed successfully!"
+                        // Extract the prediction file path from the log
+                        def logContent = readFile(file: "prediction_output.log")
+                        def predictionFilePath = ""
+
+                        def predictionFileMatch = (logContent =~ /Prediction written to:\s*(.*\.json)/)
+
+                        if (predictionFileMatch.find()) {
+                            predictionFilePath = predictionFileMatch[0][1].trim()  // ✅ Extract only the filename as a string
+                            echo "✅ Prediction file detected: ${predictionFilePath}"
+                        } else {
+                            error("❌ ERROR: Could not extract prediction file name. Check 'prediction_output.log'.")
+                        }
+
+                        // ✅ Normalize & Convert Path
+                        if (!predictionFilePath.startsWith("D:/")) {
+                            predictionFilePath = "D:/machinelearning/build_log/build_logs/" + predictionFilePath
+                        }
+
+                        // ✅ Debugging: Print Directory Contents
+                        echo "📂 Listing all files in ${env.PREDICTION_FOLDER}:"
+                        bat "dir /B \"${env.PREDICTION_FOLDER}\""
+
+                        // ✅ Wait for File Creation
+                        sleep(time: 5, unit: 'SECONDS')
+
+                        // ✅ Ensure file path is not empty
+                        if (predictionFilePath == null || predictionFilePath.trim().isEmpty()) {
+                            error("❌ ERROR: Extracted prediction file path is empty!")
+                        }
+
+                        // ✅ Check if File Exists
+                        if (fileExists(predictionFilePath)) {
+                            echo "✅ Verified: Prediction file exists at ${predictionFilePath}."
+                            env.PREDICTION_FILE_PATH = predictionFilePath
+                        } else {
+                            error("❌ ERROR: Prediction file **still** not found at ${predictionFilePath}.")
+                        }
+                    }
                 }
             }
         }
@@ -73,12 +99,18 @@ pipeline {
 
     post {
         always {
-            echo "🔒 Virtual environment will be deactivated automatically on Windows."
+            echo 'Cleaning up...'
+            // Clean up if necessary, like deactivating the virtual environment or removing temp files
+            bat "deactivate || exit 0"  // Deactivate virtual environment if still active
+        }
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed. Check logs for more details.'
         }
     }
 }
-
-
 
 
 
