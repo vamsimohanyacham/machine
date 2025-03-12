@@ -100,8 +100,9 @@ pipeline {
     post {
         always {
             echo 'Cleaning up...'
-            // Clean up if necessary, like deactivating the virtual environment or removing temp files
-            bat "deactivate || exit 0"  // Deactivate virtual environment if still active
+            // Optional: Clean up if necessary, such as deleting temp files or resetting environment variables
+            // However, deactivating the virtual environment is not needed explicitly in Windows pipelines.
+            echo 'Virtual environment deactivated.'  // Just a placeholder as deactivation is automatic in Windows when the session ends
         }
         success {
             echo '✅ Pipeline completed successfully!'
