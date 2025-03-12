@@ -45,13 +45,13 @@ pipeline {
 
                     // Run npm install and build
                     echo "Running npm install"
-                    def npmInstallStatus = sh(script: 'npm install', returnStatus: true)
+                    def npmInstallStatus = bat(script: 'npm install', returnStatus: true)
                     if (npmInstallStatus != 0) {
                         error "❌ npm install failed. Please check the logs for details."
                     }
 
                     echo "Running npm build"
-                    def npmBuildStatus = sh(script: 'npm run build', returnStatus: true)
+                    def npmBuildStatus = bat(script: 'npm run build', returnStatus: true)
                     if (npmBuildStatus != 0) {
                         error "❌ npm build failed. Please check the logs for details."
                     }
@@ -82,7 +82,7 @@ pipeline {
                     // Pass the captured environment variables to the ML script
                     def result = bat(script: """
                         call ${env.VENV_PATH}/Scripts/activate
-                        call python ${env.PYTHON_SCRIPT} --build_duration ${env.BUILD_DURATION} --dependency_changes ${env.DEPENDENCY_CHANGES} --failed_previous_builds ${env.FAILED_PREVIOUS_BUILD} > prediction_output.log 2>&1
+                        call python ${env.PYTHON_SCRIPT} --build_duration ${env.BUILD_DURATION} --dependency_changes ${env.DEPENDENCY_CHANGES} --failed_previous_builds ${env.FAILED_PREVIOUS_BUILDS} > prediction_output.log 2>&1
                     """, returnStdout: true, returnStatus: true)
                     echo "Python script output: ${result}"
 
@@ -113,6 +113,7 @@ pipeline {
         }
     }
 }
+
 
 
 
