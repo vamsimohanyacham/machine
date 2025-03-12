@@ -8,19 +8,17 @@ pipeline {
         PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"
         CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"
         PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
-        GIT_BRANCH = "main"
         PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
-        JENKINS_WORKSPACE = "${WORKSPACE}/machinelearning" // Path to your local machinelearning folder in the Jenkins workspace
     }
 
     stages {
         stage('Set up Python Environment') {
             steps {
                 script {
-                    dir(env.JENKINS_WORKSPACE) {
+                    dir(env.WORKSPACE_DIR) {
                         echo '🔍 Checking if virtual environment exists...'
 
+                        // Check if the virtual environment exists and create it if it doesn't
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
                             echo '⚠️ Virtual environment not found. Creating a new one...'
                             bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
@@ -41,19 +39,19 @@ pipeline {
         stage('Run ML Error Prediction') {
             steps {
                 script {
-                    // Copy the machine learning directory to Jenkins workspace
-                    echo "🔁 Copying machine learning project to Jenkins workspace..."
-                    bat "xcopy /E /I /H D:\\machinelearning ${WORKSPACE}/machinelearning"
-
-                    dir(env.JENKINS_WORKSPACE) {
+                    dir(env.WORKSPACE_DIR) {
                         echo "🚀 Running prediction model..."
+
+                        // Run the Python script with the given parameters
                         bat """
-                            cmd /c ${env.VENV_PATH}/Scripts/activate && python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+                            call ${env.VENV_PATH}/Scripts/activate
+                            call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
                         """
 
                         echo "📜 Displaying Python script output..."
                         bat "type prediction_output.log"
 
+                        // Check if the output log file exists
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
@@ -61,9 +59,24 @@ pipeline {
                 }
             }
         }
+
+        stage('Post Actions') {
+            steps {
+                script {
+                    // Clean up or any final steps
+                    echo "🧹 Cleaning up..."
+                    echo "✅ Pipeline completed successfully!"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "🔒 Virtual environment will be deactivated automatically on Windows."
+        }
     }
 }
-
 
 
 
