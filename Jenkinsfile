@@ -11,13 +11,14 @@ pipeline {
         GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
         GIT_BRANCH = "main"
         PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
+        JENKINS_WORKSPACE = "${WORKSPACE}/machinelearning" // Path to your local machinelearning folder in the Jenkins workspace
     }
 
     stages {
         stage('Set up Python Environment') {
             steps {
                 script {
-                    dir(env.WORKSPACE_DIR) {
+                    dir(env.JENKINS_WORKSPACE) {
                         echo '🔍 Checking if virtual environment exists...'
 
                         if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
@@ -40,7 +41,11 @@ pipeline {
         stage('Run ML Error Prediction') {
             steps {
                 script {
-                    dir(env.WORKSPACE_DIR) {
+                    // Copy the machine learning directory to Jenkins workspace
+                    echo "🔁 Copying machine learning project to Jenkins workspace..."
+                    bat "xcopy /E /I /H D:\\machinelearning ${WORKSPACE}/machinelearning"
+
+                    dir(env.JENKINS_WORKSPACE) {
                         echo "🚀 Running prediction model..."
                         bat """
                             cmd /c ${env.VENV_PATH}/Scripts/activate && python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
@@ -58,6 +63,7 @@ pipeline {
         }
     }
 }
+
 
 
 
