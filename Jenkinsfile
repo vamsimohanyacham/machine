@@ -31,7 +31,6 @@ pipeline {
                             call ${env.VENV_PATH}/Scripts/activate
                             call python -m pip install --upgrade pip
                             call pip install pandas scikit-learn
-                            call pip list  # Print installed packages to verify
                         """
                     }
                 }
@@ -43,36 +42,19 @@ pipeline {
                 script {
                     dir(env.WORKSPACE_DIR) {
                         echo "🚀 Running prediction model..."
-
-                        // Run prediction script and capture all logs
                         bat """
-                            call ${env.VENV_PATH}/Scripts/activate
-                            call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+                            cmd /c ${env.VENV_PATH}/Scripts/activate && python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
                         """
 
                         echo "📜 Displaying Python script output..."
                         bat "type prediction_output.log"
 
-                        // Check for errors
                         if (!fileExists("prediction_output.log")) {
                             error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
                         }
-
-                        // Capture full log for debugging purposes
-                        echo "📂 Full output from prediction script:"
-                        bat "type prediction_output.log"
                     }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo "🧹 Cleaning up..."
-        }
-        failure {
-            echo "❌ Pipeline failed. Check the logs for more details."
         }
     }
 }
