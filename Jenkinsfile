@@ -38,25 +38,56 @@ pipeline {
         }
 
         stage('Run ML Error Prediction') {
-    steps {
-        script {
-            dir(env.WORKSPACE_DIR) {
-                echo "🚀 Running prediction model..."
-                bat """
-                    call ${env.VENV_PATH}/Scripts/activate
-                    call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
-                """
+            steps {
+                script {
+                    dir(env.WORKSPACE_DIR) {
+                        echo "🚀 Running prediction model..."
 
-                echo "📜 Displaying Python script output..."
-                bat "type prediction_output.log"
+                        try {
+                            // Running the Python script and capturing the output in prediction_output.log
+                            bat """
+                                call ${env.VENV_PATH}/Scripts/activate
+                                call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
+                            """
 
-                if (!fileExists("prediction_output.log")) {
-                    error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
+                            // Display the content of the log file
+                            echo "📜 Displaying Python script output..."
+                            bat "type prediction_output.log"
+
+                            // Check if the prediction_output.log file exists after running the script
+                            if (!fileExists("prediction_output.log")) {
+                                error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
+                            }
+                        } catch (Exception e) {
+                            // Catch any errors during the script execution
+                            echo "⚠️ Error occurred while running the prediction script: ${e.getMessage()}"
+                            currentBuild.result = 'FAILURE'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Post Actions') {
+            steps {
+                script {
+                    echo '🧹 Cleaning up...'
+                    // Any cleanup steps can be added here, for example:
+                    // cleanWs()
                 }
             }
         }
     }
 
+    post {
+        failure {
+            echo "❌ Pipeline failed. Check the logs for more details."
+        }
+        success {
+            echo "✅ Pipeline succeeded!"
+        }
+    }
+}
 
 
 
