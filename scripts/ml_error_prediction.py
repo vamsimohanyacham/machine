@@ -275,7 +275,7 @@ def make_prediction(build_duration, dependency_changes, failed_previous_builds):
         "details": []
     }
 
-# Function to update build logs
+# Function to update build logs with UTF-8 encoding
 def update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, build_status):
     if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
@@ -291,16 +291,20 @@ def update_build_logs(csv_file, build_duration, dependency_changes, failed_previ
     })
 
     df = pd.concat([df, new_data], ignore_index=True)
-    df.to_csv(csv_file, index=False)
+
+    # Write to CSV with UTF-8 encoding to avoid Unicode errors
+    df.to_csv(csv_file, index=False, encoding='utf-8')
+
     print(f"✅ Build logs updated in {csv_file}")
 
-# Function to save prediction results
+# Function to save prediction results to a JSON file
 def save_prediction_to_json(prediction, prediction_folder, prediction_count):
     os.makedirs(prediction_folder, exist_ok=True)
     prediction_file = os.path.join(prediction_folder, f"prediction{prediction_count}.json")
 
-    with open(prediction_file, 'w') as f:
-        json.dump(prediction, f, indent=4)
+    # Write prediction to JSON file
+    with open(prediction_file, 'w', encoding='utf-8') as f:
+        json.dump(prediction, f, indent=4, ensure_ascii=False)
 
     print(f"✅ Prediction written to: {prediction_file}")
 
@@ -324,10 +328,10 @@ def main():
     # Make prediction
     prediction = make_prediction(build_duration, dependency_changes, failed_previous_builds)
 
-    # Update logs
+    # Update logs with UTF-8 encoding
     update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, prediction["status"])
 
-    # Save output
+    # Save output to JSON with UTF-8 encoding
     save_prediction_to_json(prediction, prediction_folder, prediction_count)
 
     print("✅ Prediction and historical data updated successfully.")
