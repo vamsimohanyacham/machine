@@ -1,94 +1,127 @@
-pipeline {
-    agent any
+import os
+import json
+import pickle
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
 
-    environment {
-        WORKSPACE_DIR = "D:/machinelearning"
-        VENV_PATH = "${WORKSPACE_DIR}/venv"
-        SCRIPT_PATH = "${WORKSPACE_DIR}/scripts"
-        PREDICTION_FOLDER = "${WORKSPACE_DIR}/build_log/build_logs"
-        CSV_FILE = "${WORKSPACE_DIR}/build_logs.csv"
-        PYTHON_SCRIPT = "${SCRIPT_PATH}/ml_error_prediction.py"
-        GIT_REPO = "https://github.com/vamsimohanyacham/machine.git"
-        GIT_BRANCH = "main"
-        PYTHON_PATH = "C:/Users/MTL1020/AppData/Local/Programs/Python/Python39/python.exe"
+# Load trained model with exception handling
+try:
+    model_path = 'D:/machinelearning/trained_models/build_error_prediction_model.pkl'
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found: {model_path}")
+
+    with open(model_path, 'rb') as f:
+        model = pickle.load(f)
+except Exception as e:
+    print(f"Error loading model: {e}")
+    raise
+
+# Prediction function
+def make_prediction(build_duration, dependency_changes, failed_previous_builds):
+    input_data = pd.DataFrame([[build_duration, dependency_changes, failed_previous_builds]],
+                              columns=['build_duration', 'dependency_changes', 'failed_previous_builds'])
+
+    # Validate inputs
+    if any(x is None or x < 0 for x in [build_duration, dependency_changes, failed_previous_builds]):
+        raise ValueError("❌ Invalid input values: All inputs must be non-negative integers.")
+
+    # Force failure for high-risk builds (Manual Override)
+    if build_duration > 350 or dependency_changes >= 3 or failed_previous_builds > 0:
+        return {
+            "status": "fail",
+            "message": "Potential issues detected in the build.",
+            "details": [
+                "Warning: Build duration is unusually long." if build_duration > 350 else "",
+                "Warning: Significant dependency changes detected." if dependency_changes >= 3 else "",
+                "Warning: The build has failed previously." if failed_previous_builds > 0 else ""
+            ]
+        }
+
+    # Use trained model for prediction
+    try:
+        prediction = model.predict(input_data)[0]
+        build_status = 'Success' if prediction == 0 else 'Fail'
+    except Exception as e:
+        print(f"Error during prediction: {e}")
+        raise
+
+    return {
+        "status": build_status.lower(),
+        "message": "No potential issues detected in the build." if build_status == 'Success' else "Potential issues detected in the build.",
+        "details": []
     }
 
-    stages {
-        stage('Set up Python Environment') {
-            steps {
-                script {
-                    dir(env.WORKSPACE_DIR) {
-                        echo '🔍 Checking if virtual environment exists...'
+# Function to update build logs
+def update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, build_status):
+    try:
+        if os.path.exists(csv_file):
+            df = pd.read_csv(csv_file)
+        else:
+            df = pd.DataFrame(columns=["build_duration", "dependency_changes", "failed_previous_builds", "build_status"])
 
-                        if (!fileExists("${env.VENV_PATH}/Scripts/activate")) {
-                            echo '⚠️ Virtual environment not found. Creating a new one...'
-                            bat "rmdir /s /q ${env.VENV_PATH} || exit 0"
-                            bat "\"${env.PYTHON_PATH}\" -m venv ${env.VENV_PATH}"
-                        }
+        # Append new data
+        new_data = pd.DataFrame({
+            "build_duration": [build_duration],
+            "dependency_changes": [dependency_changes],
+            "failed_previous_builds": [failed_previous_builds],
+            "build_status": [build_status]  # Store actual prediction result
+        })
 
-                        echo '⬆️ Upgrading pip and installing dependencies...'
-                        bat """
-                            call ${env.VENV_PATH}/Scripts/activate
-                            call python -m pip install --upgrade pip
-                            call pip install pandas scikit-learn
-                        """
-                    }
-                }
-            }
-        }
+        df = pd.concat([df, new_data], ignore_index=True)
+        df.to_csv(csv_file, index=False)
+        print(f"✅ Build logs updated in {csv_file}")
+    except Exception as e:
+        print(f"Error updating build logs: {e}")
+        raise
 
-        stage('Run ML Error Prediction') {
-            steps {
-                script {
-                    dir(env.WORKSPACE_DIR) {
-                        echo "🚀 Running prediction model..."
+# Function to save prediction results
+def save_prediction_to_json(prediction, prediction_folder, prediction_count):
+    try:
+        os.makedirs(prediction_folder, exist_ok=True)
+        prediction_file = os.path.join(prediction_folder, f"prediction{prediction_count}.json")
 
-                        try {
-                            // Running the Python script and capturing the output in prediction_output.log
-                            bat """
-                                call ${env.VENV_PATH}/Scripts/activate
-                                call python ${env.PYTHON_SCRIPT} --build_duration 300 --dependency_changes 0 --failed_previous_builds 0 > prediction_output.log 2>&1
-                            """
+        with open(prediction_file, 'w') as f:
+            json.dump(prediction, f, indent=4)
 
-                            // Display the content of the log file
-                            echo "📜 Displaying Python script output..."
-                            bat "type prediction_output.log"
+        print(f"✅ Prediction written to: {prediction_file}")
+    except Exception as e:
+        print(f"Error saving prediction to JSON: {e}")
+        raise
 
-                            // Check if the prediction_output.log file exists after running the script
-                            if (!fileExists("prediction_output.log")) {
-                                error("❌ ERROR: prediction_output.log not found! The script did not execute correctly.")
-                            }
-                        } catch (Exception e) {
-                            // Catch any errors during the script execution
-                            echo "⚠️ Error occurred while running the prediction script: ${e.getMessage()}"
-                            currentBuild.result = 'FAILURE'
-                        }
-                    }
-                }
-            }
-        }
+# Main function
+def main():
+    try:
+        csv_file = 'D:/machinelearning/build_logs.csv'
+        prediction_folder = 'D:/machinelearning/build_log/build_logs'
 
-        stage('Post Actions') {
-            steps {
-                script {
-                    echo '🧹 Cleaning up...'
-                    // Any cleanup steps can be added here, for example:
-                    // cleanWs()
-                }
-            }
-        }
-    }
+        # Check prediction count
+        if os.path.exists(csv_file):
+            df = pd.read_csv(csv_file)
+            prediction_count = len(df) + 1
+        else:
+            prediction_count = 1
 
-    post {
-        failure {
-            echo "❌ Pipeline failed. Check the logs for more details."
-        }
-        success {
-            echo "✅ Pipeline succeeded!"
-        }
-    }
-}
+        # Test Case: High-risk build (Should FAIL)
+        build_duration = 400
+        dependency_changes = 7
+        failed_previous_builds = 1
 
+        # Make prediction
+        prediction = make_prediction(build_duration, dependency_changes, failed_previous_builds)
+
+        # Update logs
+        update_build_logs(csv_file, build_duration, dependency_changes, failed_previous_builds, prediction["status"])
+
+        # Save output
+        save_prediction_to_json(prediction, prediction_folder, prediction_count)
+
+        print("✅ Prediction and historical data updated successfully.")
+    except Exception as e:
+        print(f"❌ Error in main execution: {e}")
+        raise
+
+if __name__ == "__main__":
+    main()
 
 
 
