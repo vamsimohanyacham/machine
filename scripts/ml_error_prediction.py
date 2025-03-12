@@ -234,7 +234,6 @@ import os
 import json
 import pickle
 import pandas as pd
-import argparse
 from sklearn.ensemble import RandomForestClassifier
 
 # Load trained model
@@ -244,13 +243,6 @@ if not os.path.exists(model_path):
 
 with open(model_path, 'rb') as f:
     model = pickle.load(f)
-
-# Argument parser for dynamic input
-parser = argparse.ArgumentParser(description="Build Error Prediction")
-parser.add_argument('--build_duration', type=int, required=True, help="Duration of the build process")
-parser.add_argument('--dependency_changes', type=int, required=True, help="Number of dependency changes")
-parser.add_argument('--failed_previous_builds', type=int, required=True, help="Number of failed previous builds")
-args = parser.parse_args()
 
 # Prediction function
 def make_prediction(build_duration, dependency_changes, failed_previous_builds):
@@ -317,17 +309,17 @@ def main():
     csv_file = 'D:/machinelearning/build_logs.csv'
     prediction_folder = 'D:/machinelearning/build_log/build_logs'
 
-    # Get the input parameters from command-line arguments
-    build_duration = args.build_duration
-    dependency_changes = args.dependency_changes
-    failed_previous_builds = args.failed_previous_builds
-
     # Check prediction count
     if os.path.exists(csv_file):
         df = pd.read_csv(csv_file)
         prediction_count = len(df) + 1
     else:
         prediction_count = 1
+
+    # Test Case: High-risk build (Should FAIL)
+    build_duration = 400
+    dependency_changes = 7
+    failed_previous_builds = 1
 
     # Make prediction
     prediction = make_prediction(build_duration, dependency_changes, failed_previous_builds)
@@ -341,6 +333,4 @@ def main():
     print("✅ Prediction and historical data updated successfully.")
 
 if __name__ == "__main__":
-    main() 
-
-
+    main()
